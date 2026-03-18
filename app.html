@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FocusForge — Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#05030e;--sidebar:#080614;--card:#0d0b1f;--border:rgba(255,255,255,.08);
+  --v1:#7c3aed;--v2:#4f46e5;--b1:#0891b2;--b2:#06b6d4;
+  --text:#f1f5f9;--muted:rgba(255,255,255,.45);--green:#4ade80;--red:#f87171;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow:hidden}
+
+/* ══ LAYOUT ══ */
+.app{display:grid;grid-template-columns:64px 1fr;grid-template-rows:56px 1fr;height:100vh}
+
+/* ══ TOPBAR ══ */
+.topbar{
+  grid-column:1/-1;background:rgba(8,6,20,.9);
+  border-bottom:1px solid var(--border);backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px 0 80px;gap:16px;position:relative;z-index:10;
+}
+.topbar-logo{
+  font-size:15px;font-weight:900;
+  background:linear-gradient(120deg,#c4b5fd,#67e8f9);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  position:absolute;left:16px;
+}
+.topbar-greeting{font-size:13px;color:var(--muted)}
+.topbar-greeting strong{color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px;margin-left:auto}
+.topbar-date{font-size:12px;color:var(--muted)}
+.topbar-bell{
+  width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;color:var(--muted);
+  transition:all .2s;position:relative;
+}
+.topbar-bell:hover{color:#fff;background:rgba(255,255,255,.08)}
+.notif-dot{
+  position:absolute;top:7px;right:7px;width:6px;height:6px;
+  border-radius:50%;background:#7c3aed;border:1.5px solid var(--bg);
+}
+.topbar-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#06b6d4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;cursor:pointer;
+}
+
+/* ══ SIDEBAR ══ */
+.sidebar{
+  background:var(--sidebar);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px 0;gap:4px;position:relative;z-index:5;
+}
+.nav-item{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--muted);position:relative;
+  transition:all .2s;border:1px solid transparent;
+}
+.nav-item:hover{color:#fff;background:rgba(124,58,237,.12)}
+.nav-item.active{
+  color:#a78bfa;background:rgba(124,58,237,.18);
+  border-color:rgba(124,58,237,.25);
+}
+.nav-item .tooltip{
+  position:absolute;left:54px;background:#1a1730;border:1px solid var(--border);
+  color:var(--text);font-size:11px;font-weight:600;padding:5px 10px;
+  border-radius:7px;white-space:nowrap;pointer-events:none;
+  opacity:0;transform:translateX(-4px);transition:all .18s;z-index:99;
+}
+.nav-item:hover .tooltip{opacity:1;transform:translateX(0)}
+.sidebar-spacer{flex:1}
+
+/* ══ MAIN ══ */
+.main{overflow-y:auto;padding:28px;
+  background:radial-gradient(ellipse 800px 600px at 80% 20%,rgba(124,58,237,.07) 0%,transparent 60%)}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ══ PANEL HEADER ══ */
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.panel-title{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.panel-sub{font-size:13px;color:var(--muted);margin-top:3px}
+
+/* ══ CARD ══ */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:20px;
+}
+.card-title{font-size:11px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+
+/* ════════════ FOCUS PANEL ════════════ */
+.focus-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+
+.timer-card{
+  background:var(--card);border:1px solid rgba(124,58,237,.2);
+  border-radius:20px;padding:36px 28px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.timer-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 300px 200px at 50% 0%,rgba(124,58,237,.1),transparent);
+  pointer-events:none;
+}
+.session-tabs{display:flex;gap:6px;justify-content:center;margin-bottom:32px}
+.s-tab{
+  padding:7px 16px;border-radius:99px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.s-tab.active{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.4);color:#c4b5fd}
+.s-tab:hover:not(.active){color:#fff;border-color:rgba(255,255,255,.2)}
+
+.timer-ring-wrap{position:relative;width:200px;height:200px;margin:0 auto 24px}
+.timer-ring-wrap svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring-track{fill:none;stroke:rgba(124,58,237,.12);stroke-width:6}
+.ring-prog{
+  fill:none;stroke:url(#timerGrad);stroke-width:6;stroke-linecap:round;
+  stroke-dasharray:565;stroke-dashoffset:0;
+  transition:stroke-dashoffset .5s ease;
+}
+.timer-inner{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.timer-num{
+  font-size:clamp(44px,6vw,58px);font-weight:900;letter-spacing:-2px;
+  font-variant-numeric:tabular-nums;
+  background:linear-gradient(120deg,#fff 0%,#c4b5fd 60%,#67e8f9 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.timer-mode{font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
+
+.timer-controls{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:20px}
+.btn-start{
+  display:flex;align-items:center;gap:9px;padding:13px 36px;
+  border-radius:14px;border:none;cursor:pointer;font-size:14px;font-weight:800;
+  color:#fff;background:linear-gradient(135deg,#7c3aed,#4f46e5,#0891b2);
+  background-size:200% auto;box-shadow:0 4px 24px rgba(124,58,237,.45);
+  transition:all .25s;animation:btnGlow 3s ease-in-out infinite;
+}
+@keyframes btnGlow{
+  0%,100%{box-shadow:0 4px 24px rgba(124,58,237,.45)}
+  50%{box-shadow:0 4px 40px rgba(124,58,237,.8),0 0 0 4px rgba(124,58,237,.1)}
+}
+.btn-start:hover{transform:translateY(-2px)}
+.btn-reset{
+  width:42px;height:42px;border-radius:11px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.btn-reset:hover{color:#fff;background:rgba(255,255,255,.09)}
+
+.session-info{
+  display:flex;align-items:center;justify-content:center;gap:20px;
+  font-size:12px;color:var(--muted);
+}
+.session-info span strong{color:#a78bfa}
+
+/* Focus side panel */
+.focus-side{display:flex;flex-direction:column;gap:16px}
+.current-task-card{background:var(--card);border:1px solid rgba(124,58,237,.2);border-radius:16px;padding:18px}
+.ct-label{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+.ct-select{
+  width:100%;padding:9px 12px;border-radius:10px;
+  border:1px solid var(--border);background:rgba(255,255,255,.04);
+  color:var(--text);font-size:13px;cursor:pointer;outline:none;
+}
+.ct-select option{background:#1a1730}
+
+.session-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ss-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:14px;text-align:center;
+}
+.ss-val{font-size:24px;font-weight:900;
+  background:linear-gradient(120deg,#c4b5fd,#67e8f9);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ss-key{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:1px}
+
+/* ════════════ TASKS PANEL ════════════ */
+.tasks-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.filter-tabs{display:flex;gap:4px}
+.f-tab{
+  padding:6px 14px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.f-tab.active{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.35);color:#c4b5fd}
+.btn-add-task{
+  margin-left:auto;display:flex;align-items:center;gap:7px;
+  padding:8px 18px;border-radius:10px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#7c3aed,#0891b2);
+  transition:all .2s;
+}
+.btn-add-task:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,58,237,.45)}
+
+.add-task-form{
+  background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.2);
+  border-radius:14px;padding:16px;margin-bottom:16px;
+  display:none;gap:10px;flex-wrap:wrap;align-items:center;
+}
+.add-task-form.show{display:flex}
+.task-input{
+  flex:1;min-width:200px;padding:10px 14px;border-radius:10px;
+  border:1px solid var(--border);background:rgba(255,255,255,.05);
+  color:var(--text);font-size:13px;outline:none;
+}
+.task-input:focus{border-color:rgba(124,58,237,.5)}
+.task-input::placeholder{color:rgba(255,255,255,.25)}
+.priority-select{
+  padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-size:13px;
+  cursor:pointer;outline:none;
+}
+.priority-select option{background:#1a1730}
+.btn-confirm-add{
+  padding:10px 20px;border-radius:10px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#7c3aed,#0891b2);
+}
+
+.tasks-progress{margin-bottom:18px}
+.tp-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px}
+.tp-row span:last-child{color:#a78bfa;font-weight:700}
+.tp-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.tp-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#06b6d4);border-radius:99px;transition:width .4s ease}
+
+.task-list{display:flex;flex-direction:column;gap:8px}
+.task-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:12px 16px;
+  transition:border-color .2s;
+}
+.task-item:hover{border-color:rgba(124,58,237,.25)}
+.task-cb{
+  width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(255,255,255,.2);
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.task-cb.done{background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent}
+.task-name{flex:1;font-size:13px;transition:all .2s}
+.task-name.done{color:var(--muted);text-decoration:line-through}
+.priority-badge{
+  padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;
+}
+.p-high{background:rgba(248,113,113,.15);color:#fca5a5}
+.p-mid{background:rgba(251,191,36,.12);color:#fcd34d}
+.p-low{background:rgba(74,222,128,.12);color:#86efac}
+.task-del{
+  width:28px;height:28px;border-radius:7px;border:none;cursor:pointer;
+  background:transparent;color:rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.task-del:hover{background:rgba(248,113,113,.15);color:#f87171}
+
+/* ════════════ STATS PANEL ════════════ */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:18px;
+  position:relative;overflow:hidden;
+}
+.stat-card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--v1),var(--b2),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.stat-card:hover::after{opacity:1}
+.stat-val{font-size:28px;font-weight:900;
+  background:linear-gradient(120deg,#fff,#c4b5fd);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:5px;
+}
+.stat-label{font-size:12px;color:var(--muted)}
+.stat-delta{font-size:11px;color:var(--green);margin-top:6px;font-weight:600}
+
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+
+/* Bar chart */
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:8px}
+.b-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.b-bar{
+  width:100%;border-radius:5px 5px 0 0;
+  background:linear-gradient(to top,rgba(124,58,237,.5),rgba(6,182,212,.4));
+  transition:height .6s ease;
+}
+.b-label{font-size:10px;color:var(--muted)}
+.b-val{font-size:9px;color:#a78bfa}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:24px}
+.donut{position:relative;width:100px;height:100px;flex-shrink:0}
+.donut svg{transform:rotate(-90deg)}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.donut-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.donut-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Activity */
+.activity-list{display:flex;flex-direction:column;gap:8px}
+.activity-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 14px;background:rgba(255,255,255,.03);border-radius:10px;
+  font-size:12px;
+}
+.activity-icon{
+  width:32px;height:32px;border-radius:9px;flex-shrink:0;
+  background:rgba(124,58,237,.15);display:flex;align-items:center;
+  justify-content:center;color:#a78bfa;
+}
+.activity-info{flex:1}
+.activity-task{font-weight:600;margin-bottom:2px}
+.activity-time{color:var(--muted);font-size:11px}
+.activity-dur{color:#a78bfa;font-weight:700;font-size:11px}
+
+/* ════════════ HABITS PANEL ════════════ */
+.habits-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.habit-row{
+  display:flex;align-items:center;gap:14px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:14px 16px;
+  transition:border-color .2s;
+}
+.habit-row:hover{border-color:rgba(124,58,237,.25)}
+.habit-check{
+  width:24px;height:24px;border-radius:7px;border:1.5px solid rgba(255,255,255,.2);
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.habit-check.done{background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent}
+.habit-info{flex:1}
+.habit-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.habit-streak{font-size:11px;color:var(--muted)}
+.habit-mini-grid{display:flex;gap:3px}
+.hm-cell{width:14px;height:14px;border-radius:3px;background:rgba(255,255,255,.06)}
+.hm-cell.h1{background:rgba(124,58,237,.3)}
+.hm-cell.h2{background:rgba(124,58,237,.6)}
+.hm-cell.h3{background:#7c3aed}
+
+.heatmap-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}
+.hc{height:24px;border-radius:5px;background:rgba(255,255,255,.05);cursor:pointer;transition:transform .15s}
+.hc:hover{transform:scale(1.15)}
+.hc.l1{background:rgba(124,58,237,.25)}
+.hc.l2{background:rgba(124,58,237,.5)}
+.hc.l3{background:#7c3aed}
+.hc.l4{background:#9b59d9}
+
+.add-habit-row{display:flex;gap:10px;margin-top:10px}
+.habit-name-input{
+  flex:1;padding:10px 14px;border-radius:10px;
+  border:1px solid var(--border);background:rgba(255,255,255,.05);
+  color:var(--text);font-size:13px;outline:none;
+}
+.habit-name-input:focus{border-color:rgba(124,58,237,.5)}
+.habit-name-input::placeholder{color:rgba(255,255,255,.25)}
+.btn-add-habit{
+  padding:10px 18px;border-radius:10px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#7c3aed,#0891b2);
+}
+
+/* ════════════ SETTINGS PANEL ════════════ */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.settings-section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px}
+.settings-section h3{font-size:13px;font-weight:700;margin-bottom:18px;color:#a78bfa}
+.setting-row{margin-bottom:18px}
+.setting-row:last-child{margin-bottom:0}
+.setting-label{display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;margin-bottom:8px}
+.setting-label span:last-child{color:#a78bfa;font-weight:700;font-size:12px}
+.setting-slider{
+  width:100%;height:4px;border-radius:99px;
+  background:rgba(255,255,255,.1);cursor:pointer;
+  accent-color:#7c3aed;
+}
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.toggle-row:last-child{margin-bottom:0}
+.toggle-label{font-size:13px}
+.toggle-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.toggle{
+  width:42px;height:24px;border-radius:99px;cursor:pointer;
+  background:rgba(255,255,255,.12);border:none;position:relative;
+  transition:background .25s;flex-shrink:0;
+}
+.toggle.on{background:linear-gradient(135deg,#7c3aed,#0891b2)}
+.toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:18px;height:18px;border-radius:50%;background:#fff;
+  transition:transform .25s;
+}
+.toggle.on::after{transform:translateX(18px)}
+.btn-save{
+  margin-top:20px;padding:12px 32px;border-radius:12px;border:none;cursor:pointer;
+  font-size:14px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#7c3aed,#0891b2);
+  transition:all .2s;
+}
+.btn-save:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(124,58,237,.5)}
+
+/* ════════════ MOBILE ════════════ */
+@media(max-width:768px){
+  .app{grid-template-columns:1fr;grid-template-rows:56px 48px 1fr}
+  .sidebar{
+    grid-row:2;grid-column:1;flex-direction:row;
+    justify-content:center;border-right:none;border-bottom:1px solid var(--border);
+    padding:0 12px;height:48px;
+  }
+  .nav-item .tooltip{display:none}
+  .topbar{padding:0 16px}
+  .topbar-logo{position:static}
+  .main{grid-row:3;padding:16px}
+  .focus-grid,.charts-row,.stats-grid,.settings-grid{grid-template-columns:1fr}
+  .session-stats{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ TOPBAR ══ -->
+<header class="topbar">
+  <div class="topbar-logo">FF</div>
+  <div class="topbar-greeting">Добро пожаловать, <strong>Георгий 👋</strong></div>
+  <div class="topbar-right">
+    <div class="topbar-date" id="topDate"></div>
+    <div class="topbar-bell">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-dot"></div>
+    </div>
+    <div class="topbar-avatar">ГС</div>
+  </div>
+</header>
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="nav-item active" onclick="showPanel('focus',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <div class="tooltip">Фокус</div>
+  </div>
+  <div class="nav-item" onclick="showPanel('tasks',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <div class="tooltip">Задачи</div>
+  </div>
+  <div class="nav-item" onclick="showPanel('stats',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <div class="tooltip">Статистика</div>
+  </div>
+  <div class="nav-item" onclick="showPanel('habits',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <div class="tooltip">Привычки</div>
+  </div>
+  <div class="sidebar-spacer"></div>
+  <div class="nav-item" onclick="showPanel('settings',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <div class="tooltip">Настройки</div>
+  </div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+<!-- ════ FOCUS ════ -->
+<div class="panel active" id="panel-focus">
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#7c3aed"/>
+        <stop offset="100%" stop-color="#06b6d4"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="panel-header">
+    <div><div class="panel-title">Фокус-сессия</div><div class="panel-sub">Концентрируйся. Работай. Отдыхай.</div></div>
+  </div>
+  <div class="focus-grid">
+    <div class="timer-card">
+      <div class="session-tabs">
+        <button class="s-tab active" onclick="setMode(0,this)">Фокус 25м</button>
+        <button class="s-tab" onclick="setMode(1,this)">Перерыв 5м</button>
+        <button class="s-tab" onclick="setMode(2,this)">Длинный 15м</button>
+      </div>
+      <div class="timer-ring-wrap">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle class="ring-track" cx="100" cy="100" r="90"/>
+          <circle class="ring-prog" cx="100" cy="100" r="90" id="ringProg"/>
+        </svg>
+        <div class="timer-inner">
+          <div class="timer-num" id="timerNum">25:00</div>
+          <div class="timer-mode" id="timerMode">Глубокий фокус</div>
+        </div>
+      </div>
+      <div class="timer-controls">
+        <button class="btn-reset" onclick="resetTimer()" title="Сбросить">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg>
+        </button>
+        <button class="btn-start" id="startBtn" onclick="toggleTimer()">
+          <svg id="iconPlay" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg id="iconPause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <span id="startLabel">Старт</span>
+        </button>
+      </div>
+      <div class="session-info">
+        <span>Сессий сегодня: <strong id="sessCount">3</strong></span>
+        <span>Фокус-время: <strong id="focusTime">1ч 15м</strong></span>
+      </div>
+    </div>
+    <div class="focus-side">
+      <div class="current-task-card">
+        <div class="ct-label">Текущая задача</div>
+        <select class="ct-select" id="ctSelect">
+          <option>Дизайн новой фичи</option>
+          <option>Созвон с командой</option>
+          <option>Написать документацию</option>
+        </select>
+      </div>
+      <div class="session-stats">
+        <div class="ss-card"><div class="ss-val">4h</div><div class="ss-key">Фокус</div></div>
+        <div class="ss-card"><div class="ss-val">12</div><div class="ss-key">Серия</div></div>
+        <div class="ss-card"><div class="ss-val">47</div><div class="ss-key">Задач</div></div>
+        <div class="ss-card"><div class="ss-val">+40%</div><div class="ss-key">Рост</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Подсказка дня</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6" id="tipText"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ TASKS ════ -->
+<div class="panel" id="panel-tasks">
+  <div class="panel-header">
+    <div><div class="panel-title">Мои задачи</div><div class="panel-sub" id="taskSubtitle"></div></div>
+  </div>
+  <div class="tasks-toolbar">
+    <div class="filter-tabs">
+      <button class="f-tab active" onclick="filterTasks('all',this)">Все</button>
+      <button class="f-tab" onclick="filterTasks('active',this)">Активные</button>
+      <button class="f-tab" onclick="filterTasks('done',this)">Выполненные</button>
+    </div>
+    <button class="btn-add-task" onclick="toggleAddForm()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Добавить
+    </button>
+  </div>
+  <div class="add-task-form" id="addForm">
+    <input class="task-input" id="newTaskInput" placeholder="Название задачи..." onkeydown="if(event.key==='Enter')addTask()"/>
+    <select class="priority-select" id="newTaskPriority">
+      <option value="high">🔴 Высокий</option>
+      <option value="mid" selected>🟡 Средний</option>
+      <option value="low">🟢 Низкий</option>
+    </select>
+    <button class="btn-confirm-add" onclick="addTask()">Добавить</button>
+  </div>
+  <div class="tasks-progress">
+    <div class="tp-row"><span>Прогресс</span><span id="progressLabel"></span></div>
+    <div class="tp-bar"><div class="tp-fill" id="progressFill"></div></div>
+  </div>
+  <div class="task-list" id="taskList"></div>
+</div>
+
+<!-- ════ STATS ════ -->
+<div class="panel" id="panel-stats">
+  <div class="panel-header">
+    <div><div class="panel-title">Статистика</div><div class="panel-sub">Твои результаты за неделю</div></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val">28h</div><div class="stat-label">Часов фокуса</div><div class="stat-delta">↑ +3ч к прошлой неделе</div></div>
+    <div class="stat-card"><div class="stat-val">47</div><div class="stat-label">Задач закрыто</div><div class="stat-delta">↑ +12 к прошлой неделе</div></div>
+    <div class="stat-card"><div class="stat-val">12</div><div class="stat-label">Дней серии</div><div class="stat-delta">🔥 Лучший результат!</div></div>
+    <div class="stat-card"><div class="stat-val">+40%</div><div class="stat-label">Продуктивность</div><div class="stat-delta">↑ Стабильный рост</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Фокус по дням (часы)</div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Распределение времени</div>
+      <div class="donut-wrap" style="margin-top:8px">
+        <div class="donut">
+          <svg width="100" height="100" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(124,58,237,.15)" stroke-width="14"/>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#7c3aed" stroke-width="14" stroke-dasharray="143 96" stroke-dashoffset="0" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#06b6d4" stroke-width="14" stroke-dasharray="60 179" stroke-dashoffset="-143" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#4f46e5" stroke-width="14" stroke-dasharray="36 203" stroke-dashoffset="-203" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="donut-legend">
+          <div class="donut-item"><div class="donut-dot" style="background:#7c3aed"></div><span>Фокус — 60%</span></div>
+          <div class="donut-item"><div class="donut-dot" style="background:#06b6d4"></div><span>Задачи — 25%</span></div>
+          <div class="donut-item"><div class="donut-dot" style="background:#4f46e5"></div><span>Перерывы — 15%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Последние сессии</div>
+    <div class="activity-list">
+      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Дизайн новой фичи</div><div class="activity-time">Сегодня, 14:30</div></div><div class="activity-dur">25м</div></div>
+      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Код-ревью модуля</div><div class="activity-time">Сегодня, 13:00</div></div><div class="activity-dur">25м</div></div>
+      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Написать отчёт</div><div class="activity-time">Вчера, 16:00</div></div><div class="activity-dur">50м</div></div>
+      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Планирование спринта</div><div class="activity-time">Вчера, 11:15</div></div><div class="activity-dur">25м</div></div>
+      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Изучение документации</div><div class="activity-time">2 дня назад</div></div><div class="activity-dur">25м</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ HABITS ════ -->
+<div class="panel" id="panel-habits">
+  <div class="panel-header">
+    <div><div class="panel-title">Привычки</div><div class="panel-sub">Ежедневные ритуалы формируют результат</div></div>
+  </div>
+  <div class="habits-list" id="habitsList"></div>
+  <div class="heatmap-card">
+    <div class="card-title">Активность за месяц</div>
+    <div class="heatmap-grid" id="heatmapGrid"></div>
+  </div>
+  <div class="add-habit-row">
+    <input class="habit-name-input" id="habitInput" placeholder="Новая привычка..." onkeydown="if(event.key==='Enter')addHabit()"/>
+    <button class="btn-add-habit" onclick="addHabit()">+ Добавить</button>
+  </div>
+</div>
+
+<!-- ════ SETTINGS ════ -->
+<div class="panel" id="panel-settings">
+  <div class="panel-header">
+    <div><div class="panel-title">Настройки</div><div class="panel-sub">Настрой систему под себя</div></div>
+  </div>
+  <div class="settings-grid">
+    <div class="settings-section">
+      <h3>Таймер</h3>
+      <div class="setting-row">
+        <div class="setting-label"><span>Фокус-сессия</span><span id="focusDurVal">25 мин</span></div>
+        <input type="range" class="setting-slider" min="15" max="90" value="25" oninput="document.getElementById('focusDurVal').textContent=this.value+' мин'"/>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><span>Короткий перерыв</span><span id="shortBreakVal">5 мин</span></div>
+        <input type="range" class="setting-slider" min="1" max="15" value="5" oninput="document.getElementById('shortBreakVal').textContent=this.value+' мин'"/>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><span>Длинный перерыв</span><span id="longBreakVal">15 мин</span></div>
+        <input type="range" class="setting-slider" min="10" max="30" value="15" oninput="document.getElementById('longBreakVal').textContent=this.value+' мин'"/>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Уведомления и режимы</h3>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Автозапуск следующей сессии</div><div class="toggle-sub">Таймер запускается сам после перерыва</div></div>
+        <button class="toggle" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Тихий режим</div><div class="toggle-sub">Отключать уведомления на время таймера</div></div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Звуковые сигналы</div><div class="toggle-sub">Звук в конце каждой сессии</div></div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+    </div>
+  </div>
+  <button class="btn-save" onclick="saveSettings()">Сохранить настройки</button>
+</div>
+
+</main>
+</div>
+
+<script>
+// ── Date ──
+const d = new Date()
+document.getElementById('topDate').textContent =
+  d.toLocaleDateString('ru',{weekday:'long',day:'numeric',month:'long'})
+
+// ── Panel switching ──
+function showPanel(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  document.getElementById('panel-' + name).classList.add('active')
+  el.classList.add('active')
+}
+
+// ── Tips ──
+const tips = [
+  'Начни с самой сложной задачи — это называется «съешь лягушку». После неё всё остальное покажется лёгким.',
+  'Один сфокусированный час эффективнее трёх часов работы с отвлечениями.',
+  'Ставь таймер — это создаёт искусственный дедлайн и ускоряет выполнение задач.',
+  'Не проверяй почту и мессенджеры в первый час работы — это твоё самое продуктивное время.',
+  'Серия из 12 дней — это уже привычка. Не прерывай её!'
+]
+document.getElementById('tipText').textContent = tips[Math.floor(Math.random() * tips.length)]
+
+// ══════════ TIMER ══════════
+const MODES = [
+  {label:'Глубокий фокус', mins:25},
+  {label:'Короткий перерыв', mins:5},
+  {label:'Длинный перерыв', mins:15}
+]
+let curMode = 0, secs = 25*60, timerRunning = false, timerInterval = null
+const CIRC = 2 * Math.PI * 90
+
+function updateTimer() {
+  const m = String(Math.floor(secs/60)).padStart(2,'0')
+  const s = String(secs%60).padStart(2,'0')
+  document.getElementById('timerNum').textContent = m+':'+s
+  const total = MODES[curMode].mins * 60
+  const progress = secs / total
+  document.getElementById('ringProg').style.strokeDashoffset = CIRC * progress
+}
+
+function setMode(idx, el) {
+  document.querySelectorAll('.s-tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  curMode = idx
+  secs = MODES[idx].mins * 60
+  document.getElementById('timerMode').textContent = MODES[idx].label
+  if(timerRunning) { clearInterval(timerInterval); timerRunning = false }
+  document.getElementById('iconPlay').style.display = ''
+  document.getElementById('iconPause').style.display = 'none'
+  document.getElementById('startLabel').textContent = 'Старт'
+  updateTimer()
+}
+
+function toggleTimer() {
+  timerRunning = !timerRunning
+  if(timerRunning) {
+    document.getElementById('iconPlay').style.display = 'none'
+    document.getElementById('iconPause').style.display = ''
+    document.getElementById('startLabel').textContent = 'Пауза'
+    timerInterval = setInterval(() => {
+      if(secs > 0) { secs--; updateTimer() }
+      else {
+        clearInterval(timerInterval); timerRunning = false
+        document.getElementById('iconPlay').style.display = ''
+        document.getElementById('iconPause').style.display = 'none'
+        document.getElementById('startLabel').textContent = 'Старт'
+        const cnt = document.getElementById('sessCount')
+        cnt.textContent = parseInt(cnt.textContent) + 1
+      }
+    }, 1000)
+  } else {
+    clearInterval(timerInterval)
+    document.getElementById('iconPlay').style.display = ''
+    document.getElementById('iconPause').style.display = 'none'
+    document.getElementById('startLabel').textContent = 'Старт'
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval); timerRunning = false
+  secs = MODES[curMode].mins * 60
+  document.getElementById('iconPlay').style.display = ''
+  document.getElementById('iconPause').style.display = 'none'
+  document.getElementById('startLabel').textContent = 'Старт'
+  updateTimer()
+}
+
+updateTimer()
+
+// ══════════ TASKS ══════════
+let tasks = [
+  {id:1, name:'Утренний разбор задач', done:true,  priority:'mid'},
+  {id:2, name:'Написать отчёт',        done:true,  priority:'high'},
+  {id:3, name:'Код-ревью модуля',      done:true,  priority:'high'},
+  {id:4, name:'Дизайн новой фичи',     done:false, priority:'mid'},
+  {id:5, name:'Созвон с командой',     done:false, priority:'low'},
+  {id:6, name:'Написать документацию', done:false, priority:'low'},
+]
+let taskFilter = 'all'
+let nextId = 7
+
+const prioLabel = {high:'Высокий', mid:'Средний', low:'Низкий'}
+const prioClass = {high:'p-high', mid:'p-mid', low:'p-low'}
+
+function renderTasks() {
+  const list = document.getElementById('taskList')
+  const filtered = tasks.filter(t =>
+    taskFilter === 'all' ? true :
+    taskFilter === 'active' ? !t.done : t.done
+  )
+  list.innerHTML = filtered.map(t => `
+    <div class="task-item" id="task-${t.id}">
+      <div class="task-cb ${t.done?'done':''}" onclick="toggleTask(${t.id})">
+        ${t.done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+      </div>
+      <span class="task-name ${t.done?'done':''}">${t.name}</span>
+      <span class="priority-badge ${prioClass[t.priority]}">${prioLabel[t.priority]}</span>
+      <button class="task-del" onclick="deleteTask(${t.id})">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join('')
+  const done = tasks.filter(t => t.done).length
+  const pct = tasks.length ? Math.round(done/tasks.length*100) : 0
+  document.getElementById('progressFill').style.width = pct + '%'
+  document.getElementById('progressLabel').textContent = done + ' / ' + tasks.length + ' выполнено'
+  document.getElementById('taskSubtitle').textContent = `${tasks.filter(t=>!t.done).length} активных · ${done} выполнено`
+  // sync focus select
+  const sel = document.getElementById('ctSelect')
+  const active = tasks.filter(t=>!t.done)
+  sel.innerHTML = active.length
+    ? active.map(t=>`<option>${t.name}</option>`).join('')
+    : '<option>Все задачи выполнены 🎉</option>'
+}
+
+function toggleTask(id) {
+  const t = tasks.find(t=>t.id===id)
+  if(t) t.done = !t.done
+  renderTasks()
+}
+function deleteTask(id) {
+  tasks = tasks.filter(t=>t.id!==id)
+  renderTasks()
+}
+function filterTasks(f, el) {
+  taskFilter = f
+  document.querySelectorAll('.f-tab').forEach(b=>b.classList.remove('active'))
+  el.classList.add('active')
+  renderTasks()
+}
+function toggleAddForm() {
+  document.getElementById('addForm').classList.toggle('show')
+  document.getElementById('newTaskInput').focus()
+}
+function addTask() {
+  const name = document.getElementById('newTaskInput').value.trim()
+  if(!name) return
+  const priority = document.getElementById('newTaskPriority').value
+  tasks.push({id:nextId++, name, done:false, priority})
+  document.getElementById('newTaskInput').value = ''
+  renderTasks()
+}
+
+renderTasks()
+
+// ══════════ BAR CHART ══════════
+const weekData = [
+  {day:'Пн',h:3.5},{day:'Вт',h:5},{day:'Ср',h:4},{day:'Чт',h:6.5},
+  {day:'Пт',h:5.5},{day:'Сб',h:6},{day:'Вс',h:7.5}
+]
+const maxH = 7.5
+document.getElementById('barChart').innerHTML = weekData.map(d => `
+  <div class="b-bar-wrap">
+    <div class="b-val">${d.h}ч</div>
+    <div class="b-bar" style="height:${(d.h/maxH)*90}px"></div>
+    <div class="b-label">${d.day}</div>
+  </div>
+`).join('')
+
+// ══════════ HABITS ══════════
+let habits = [
+  {id:1, name:'Утренняя зарядка',  streak:12, done:true,  grid:[3,2,3,3,2,3,1]},
+  {id:2, name:'Чтение 30 мин',     streak:7,  done:true,  grid:[1,3,2,3,3,1,2]},
+  {id:3, name:'Планирование дня',  streak:12, done:false, grid:[3,3,2,3,2,3,0]},
+  {id:4, name:'Медитация',         streak:4,  done:false, grid:[0,1,2,3,1,2,3]},
+]
+let nextHabitId = 5
+
+function renderHabits() {
+  document.getElementById('habitsList').innerHTML = habits.map(h => `
+    <div class="habit-row">
+      <div class="habit-check ${h.done?'done':''}" onclick="toggleHabit(${h.id})">
+        ${h.done?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':''}
+      </div>
+      <div class="habit-info">
+        <div class="habit-name">${h.name}</div>
+        <div class="habit-streak">🔥 Серия: ${h.streak} дней</div>
+      </div>
+      <div class="habit-mini-grid">
+        ${h.grid.map(v=>`<div class="hm-cell ${v?'h'+v:''}"></div>`).join('')}
+      </div>
+    </div>
+  `).join('')
+}
+
+function toggleHabit(id) {
+  const h = habits.find(h=>h.id===id)
+  if(h) { h.done=!h.done; if(h.done) h.streak++ }
+  renderHabits()
+}
+
+function addHabit() {
+  const name = document.getElementById('habitInput').value.trim()
+  if(!name) return
+  habits.push({id:nextHabitId++, name, streak:0, done:false, grid:[0,0,0,0,0,0,0]})
+  document.getElementById('habitInput').value = ''
+  renderHabits()
+}
+
+renderHabits()
+
+// Heatmap
+const levels = ['','l1','l2','l3','l4']
+const hg = document.getElementById('heatmapGrid')
+for(let i=0;i<35;i++){
+  const cell = document.createElement('div')
+  cell.className = 'hc ' + (i < 28 ? levels[Math.floor(Math.random()*5)] : '')
+  hg.appendChild(cell)
+}
+
+// ══════════ SETTINGS ══════════
+function saveSettings() {
+  const btn = event.target
+  btn.textContent = '✓ Сохранено!'
+  btn.style.background = 'linear-gradient(135deg,#059669,#10b981)'
+  setTimeout(()=>{
+    btn.textContent = 'Сохранить настройки'
+    btn.style.background = ''
+  }, 2000)
+}
+</script>
+</body>
+</html>
