@@ -1639,6 +1639,22 @@ document.addEventListener('click', e => {
     closeMobileNav()
   }
 })
+
+// Expose all functions called from HTML onclick to global scope
+window.submitAuth     = submitAuth
+window.authWithGoogle = authWithGoogle
+window.openAuth       = openAuth
+window.closeAuth      = closeAuth
+window.switchTab      = switchTab
+window.openSupport    = openSupport
+window.closeSupport   = closeSupport
+window.toggleSupport  = toggleSupport
+window.sendMessage    = sendMessage
+window.sendToTelegram = sendToTelegram
+window.toggleMobileNav = toggleMobileNav
+window.closeMobileNav  = closeMobileNav
+window.toggleTimer    = toggleTimer
+window.goToApp        = goToApp
 </script>
 </body>
 </html>
