@@ -512,6 +512,45 @@ body{
   .heatmap-grid{grid-template-columns:repeat(7,1fr);gap:4px}
   .hc{height:20px}
 }
+/* ── Time adjuster ── */
+.time-adjuster{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 4px}
+.tadj{width:38px;height:28px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;font-size:12px;font-weight:700;transition:all .2s}
+.tadj:hover{color:#fff;border-color:rgba(124,58,237,.5);background:rgba(124,58,237,.15)}
+.tadj-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:0 4px}
+/* ── Priority score ── */
+.priority-bars{margin-top:14px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px}
+.pb-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.pb-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.pb-label{font-size:12px;color:var(--muted);width:60px;flex-shrink:0}
+.pb-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
+.pb-fill{height:100%;border-radius:99px;transition:width .5s ease}
+.pb-fill-h{background:linear-gradient(90deg,#f87171,#fb923c)}
+.pb-fill-m{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+.pb-fill-l{background:linear-gradient(90deg,#4ade80,#22d3ee)}
+.pb-count{font-size:12px;font-weight:700;color:var(--text);width:24px;text-align:right}
+.pb-pts{font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
+/* ── Stats real ── */
+.stat-card .stat-val{font-size:clamp(28px,4vw,36px);font-weight:900;background:linear-gradient(120deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-card .stat-delta{font-size:11px;margin-top:4px}
+/* ── Calendar ── */
+.calendar-wrap{margin-top:20px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-month-name{font-size:14px;font-weight:700}
+.cal-nav-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;font-size:14px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.cal-nav-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px}
+.cal-dow-cell{text-align:center;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px;padding:3px 0;text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:11px;font-weight:600;color:rgba(255,255,255,.25);transition:all .2s}
+.cal-cell.other-month{opacity:.25}
+.cal-cell.has-activity{color:#fff}
+.cal-cell.l1{background:rgba(124,58,237,.18)}
+.cal-cell.l2{background:rgba(124,58,237,.35)}
+.cal-cell.l3{background:rgba(124,58,237,.55)}
+.cal-cell.l4{background:rgba(124,58,237,.8)}
+.cal-cell.today{outline:2px solid #a78bfa;outline-offset:1px;color:#c4b5fd}
+.cal-legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:10px;color:var(--muted);justify-content:flex-end}
+.cal-leg-cell{width:11px;height:11px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -665,9 +704,16 @@ body{
           <span id="startLabel">Старт</span>
         </button>
       </div>
+      <div class="time-adjuster">
+        <button class="tadj" onclick="adjustTime(-5)">−5м</button>
+        <button class="tadj" onclick="adjustTime(-1)">−1м</button>
+        <span class="tadj-label">время</span>
+        <button class="tadj" onclick="adjustTime(1)">+1м</button>
+        <button class="tadj" onclick="adjustTime(5)">+5м</button>
+      </div>
       <div class="session-info">
-        <span>Сессий сегодня: <strong id="sessCount">3</strong></span>
-        <span>Фокус-время: <strong id="focusTime">1ч 15м</strong></span>
+        <span>Сессий сегодня: <strong id="sessCount">0</strong></span>
+        <span>Фокус-время: <strong id="focusTime">0м</strong></span>
       </div>
     </div>
     <div class="focus-side">
@@ -723,6 +769,13 @@ body{
     <div class="tp-bar"><div class="tp-fill" id="progressFill"></div></div>
   </div>
   <div class="task-list" id="taskList"></div>
+  <div class="priority-bars" id="priorityBars" style="display:none">
+    <div class="pb-title">Распределение по приоритету</div>
+    <div class="pb-row"><span class="pb-label">🔴 Высокий</span><div class="pb-track"><div class="pb-fill pb-fill-h" id="pbHigh" style="width:0%"></div></div><span class="pb-count" id="pbHighN">0</span></div>
+    <div class="pb-row"><span class="pb-label">🟡 Средний</span><div class="pb-track"><div class="pb-fill pb-fill-m" id="pbMid" style="width:0%"></div></div><span class="pb-count" id="pbMidN">0</span></div>
+    <div class="pb-row"><span class="pb-label">🟢 Низкий</span><div class="pb-track"><div class="pb-fill pb-fill-l" id="pbLow" style="width:0%"></div></div><span class="pb-count" id="pbLowN">0</span></div>
+    <div class="pb-pts" id="pbPts"></div>
+  </div>
 </div>
 
 <!-- ════ STATS ════ -->
@@ -731,10 +784,10 @@ body{
     <div><div class="panel-title">Статистика</div><div class="panel-sub">Твои результаты за неделю</div></div>
   </div>
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-val">28h</div><div class="stat-label">Часов фокуса</div><div class="stat-delta">↑ +3ч к прошлой неделе</div></div>
-    <div class="stat-card"><div class="stat-val">47</div><div class="stat-label">Задач закрыто</div><div class="stat-delta">↑ +12 к прошлой неделе</div></div>
-    <div class="stat-card"><div class="stat-val">12</div><div class="stat-label">Дней серии</div><div class="stat-delta">🔥 Лучший результат!</div></div>
-    <div class="stat-card"><div class="stat-val">+40%</div><div class="stat-label">Продуктивность</div><div class="stat-delta">↑ Стабильный рост</div></div>
+    <div class="stat-card"><div class="stat-val" id="stTotalHours">0ч</div><div class="stat-label">Часов фокуса</div><div class="stat-delta" id="stHoursDelta">За всё время</div></div>
+    <div class="stat-card"><div class="stat-val" id="stDoneTasks">0</div><div class="stat-label">Задач закрыто</div><div class="stat-delta" id="stTasksDelta">Всего выполнено</div></div>
+    <div class="stat-card"><div class="stat-val" id="stStreak">0</div><div class="stat-label">Дней серии</div><div class="stat-delta" id="stStreakDelta">Привычки подряд</div></div>
+    <div class="stat-card"><div class="stat-val" id="stSessions">0</div><div class="stat-label">Сессий всего</div><div class="stat-delta" id="stSessionsDelta">Фокус-сессии</div></div>
   </div>
   <div class="charts-row">
     <div class="card">
@@ -762,12 +815,8 @@ body{
   </div>
   <div class="card">
     <div class="card-title">Последние сессии</div>
-    <div class="activity-list">
-      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Дизайн новой фичи</div><div class="activity-time">Сегодня, 14:30</div></div><div class="activity-dur">25м</div></div>
-      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Код-ревью модуля</div><div class="activity-time">Сегодня, 13:00</div></div><div class="activity-dur">25м</div></div>
-      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Написать отчёт</div><div class="activity-time">Вчера, 16:00</div></div><div class="activity-dur">50м</div></div>
-      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Планирование спринта</div><div class="activity-time">Вчера, 11:15</div></div><div class="activity-dur">25м</div></div>
-      <div class="activity-item"><div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="activity-info"><div class="activity-task">Изучение документации</div><div class="activity-time">2 дня назад</div></div><div class="activity-dur">25м</div></div>
+    <div class="activity-list" id="recentSessions">
+      <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Сессий пока нет. Запусти таймер!</div>
     </div>
   </div>
 </div>
@@ -778,9 +827,28 @@ body{
     <div><div class="panel-title">Привычки</div><div class="panel-sub">Ежедневные ритуалы формируют результат</div></div>
   </div>
   <div class="habits-list" id="habitsList"></div>
-  <div class="heatmap-card">
+  <div class="card calendar-wrap">
     <div class="card-title">Активность за месяц</div>
-    <div class="heatmap-grid" id="heatmapGrid"></div>
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+      <span class="cal-month-name" id="calMonthName"></span>
+      <button class="cal-nav-btn" onclick="calNext()">›</button>
+    </div>
+    <div class="cal-dow">
+      <div class="cal-dow-cell">Пн</div><div class="cal-dow-cell">Вт</div><div class="cal-dow-cell">Ср</div>
+      <div class="cal-dow-cell">Чт</div><div class="cal-dow-cell">Пт</div><div class="cal-dow-cell">Сб</div><div class="cal-dow-cell">Вс</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-legend">
+      <span>Меньше</span>
+      <div class="cal-legend-cells">
+        <div class="cal-leg-cell" style="background:rgba(124,58,237,.18)"></div>
+        <div class="cal-leg-cell" style="background:rgba(124,58,237,.35)"></div>
+        <div class="cal-leg-cell" style="background:rgba(124,58,237,.55)"></div>
+        <div class="cal-leg-cell" style="background:rgba(124,58,237,.8)"></div>
+      </div>
+      <span>Больше</span>
+    </div>
   </div>
   <div class="add-habit-row">
     <input class="habit-name-input" id="habitInput" placeholder="Новая привычка..." onkeydown="if(event.key==='Enter')addHabit()"/>
@@ -1003,6 +1071,13 @@ window.setMode = function(idx, el) {
   document.getElementById('startLabel').textContent = 'Старт'
   updateTimer()
 }
+window.adjustTime = function(delta) {
+  if(timerRunning) return
+  const newMins = Math.max(1, Math.min(120, MODES[curMode].mins + delta))
+  MODES[curMode].mins = newMins
+  secs = newMins * 60
+  updateTimer()
+}
 
 window.toggleTimer = function() {
   if(timerRunning) {
@@ -1057,9 +1132,16 @@ function initTasks() {
   )
 }
 
+const prioOrder = {high:0, mid:1, low:2}
+const prioScore = {high:3, mid:2, low:1}
+const prioTime  = {high:'~45м', mid:'~25м', low:'~15м'}
+
 function renderTasks() {
-  const filtered = tasksData.filter(t =>
-    taskFilter==='all' ? true : taskFilter==='active' ? !t.done : t.done)
+  const prioSort = (a,b) => (prioOrder[a.priority]||1) - (prioOrder[b.priority]||1)
+  const filtered = tasksData
+    .filter(t => taskFilter==='all' ? true : taskFilter==='active' ? !t.done : t.done)
+    .sort(prioSort)
+
   document.getElementById('taskList').innerHTML = filtered.length
     ? filtered.map(t=>`
       <div class="task-item">
@@ -1067,21 +1149,45 @@ function renderTasks() {
           ${t.done?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':''}
         </div>
         <span class="task-name ${t.done?'done':''}">${t.name}</span>
+        <span style="font-size:10px;color:var(--muted);margin-left:4px;flex-shrink:0">${prioTime[t.priority]||''}</span>
         <span class="priority-badge ${prioClass[t.priority]||'p-mid'}">${prioLabel[t.priority]||'Средний'}</span>
         <button class="task-del" onclick="deleteTask('${t.id}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>`).join('')
     : '<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px">Нет задач. Добавь первую!</div>'
+
   const done = tasksData.filter(t=>t.done).length
   const pct  = tasksData.length ? Math.round(done/tasksData.length*100) : 0
   document.getElementById('progressFill').style.width = pct+'%'
-  document.getElementById('progressLabel').textContent  = done+' / '+tasksData.length+' выполнено'
-  document.getElementById('taskSubtitle').textContent   = `${tasksData.filter(t=>!t.done).length} активных · ${done} выполнено`
-  const sel    = document.getElementById('ctSelect')
-  const active = tasksData.filter(t=>!t.done)
+  document.getElementById('progressLabel').textContent = done+' / '+tasksData.length+' выполнено'
+  document.getElementById('taskSubtitle').textContent  = `${tasksData.filter(t=>!t.done).length} активных · ${done} выполнено`
+
+  // Priority bars
+  const high = tasksData.filter(t=>t.priority==='high').length
+  const mid  = tasksData.filter(t=>t.priority==='mid').length
+  const low  = tasksData.filter(t=>t.priority==='low').length
+  const total = tasksData.length || 1
+  const doneHigh = tasksData.filter(t=>t.priority==='high'&&t.done).length
+  const doneMid  = tasksData.filter(t=>t.priority==='mid'&&t.done).length
+  const doneLow  = tasksData.filter(t=>t.priority==='low'&&t.done).length
+  const pts = doneHigh*3 + doneMid*2 + doneLow*1
+  const maxPts = high*3 + mid*2 + low*1 || 1
+  if(tasksData.length > 0) {
+    document.getElementById('priorityBars').style.display = ''
+    document.getElementById('pbHigh').style.width = (high/total*100)+'%'
+    document.getElementById('pbMid').style.width  = (mid/total*100)+'%'
+    document.getElementById('pbLow').style.width  = (low/total*100)+'%'
+    document.getElementById('pbHighN').textContent = high
+    document.getElementById('pbMidN').textContent  = mid
+    document.getElementById('pbLowN').textContent  = low
+    document.getElementById('pbPts').textContent   = `Очков фокуса: ${pts} / ${maxPts} (выполнено ${Math.round(pts/maxPts*100)}%)`
+  }
+
+  const sel = document.getElementById('ctSelect')
+  const active = tasksData.filter(t=>!t.done).sort(prioSort)
   sel.innerHTML = active.length
-    ? active.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')
+    ? active.map(t=>`<option value="${t.id}">[${prioLabel[t.priority]||'Средний'}] ${t.name}</option>`).join('')
     : '<option>Все задачи выполнены 🎉</option>'
 }
 
@@ -1109,26 +1215,87 @@ window.addTask = async function() {
 // ════════ STATS ════════
 async function loadStats() {
   if(!currentUser) return
-  const today = new Date(); today.setHours(0,0,0,0)
-  const snap = await getDocs(query(
-    collection(db,'users',currentUser.uid,'sessions'),
-    where('completedAt','>=',Timestamp.fromDate(today)),
-    where('type','==','focus')
-  ))
-  const todaySess = snap.docs.map(d=>d.data())
-  const sessCount = todaySess.length
-  const focusMins = todaySess.reduce((a,s)=>a+s.duration,0)
-  document.getElementById('sessCount').textContent = sessCount
-  document.getElementById('focusTime').textContent = focusMins>=60 ? `${Math.floor(focusMins/60)}ч ${focusMins%60}м` : `${focusMins}м`
+  try {
+    const today = new Date(); today.setHours(0,0,0,0)
+    // Today's sessions
+    const todaySnap = await getDocs(query(
+      collection(db,'users',currentUser.uid,'sessions'),
+      where('completedAt','>=',Timestamp.fromDate(today)),
+      where('type','==','focus')
+    ))
+    const todaySess = todaySnap.docs.map(d=>d.data())
+    const sessCount = todaySess.length
+    const focusMins = todaySess.reduce((a,s)=>a+s.duration,0)
+    document.getElementById('sessCount').textContent = sessCount
+    document.getElementById('focusTime').textContent = focusMins>=60 ? `${Math.floor(focusMins/60)}ч ${focusMins%60}м` : `${focusMins}м`
 
-  const allSnap = await getDocs(query(collection(db,'users',currentUser.uid,'sessions'),where('type','==','focus')))
-  const totalMins = allSnap.docs.reduce((a,d)=>a+d.data().duration,0)
-  const tSnap = await getDocs(collection(db,'users',currentUser.uid,'tasks'))
-  const doneTasks = tSnap.docs.filter(d=>d.data().done).length
+    // All-time sessions
+    const allSnap = await getDocs(query(collection(db,'users',currentUser.uid,'sessions'),where('type','==','focus')))
+    const allSess  = allSnap.docs.map(d=>({id:d.id,...d.data()}))
+    const totalMins = allSess.reduce((a,s)=>a+s.duration,0)
 
-  const cards = document.querySelectorAll('.ss-card .ss-val')
-  if(cards[0]) cards[0].textContent = Math.round(totalMins/60)+'ч'
-  if(cards[2]) cards[2].textContent = doneTasks
+    // Tasks
+    const tSnap = await getDocs(collection(db,'users',currentUser.uid,'tasks'))
+    const doneTasks = tSnap.docs.filter(d=>d.data().done).length
+
+    // Streak from habits
+    const maxStreak = habitsData.length ? Math.max(...habitsData.map(h=>h.streak||0)) : 0
+
+    // Update focus panel mini-cards
+    const cards = document.querySelectorAll('.ss-card .ss-val')
+    if(cards[0]) cards[0].textContent = Math.round(totalMins/60)+'ч'
+    if(cards[2]) cards[2].textContent = doneTasks
+
+    // Update stats panel cards
+    const stTH = document.getElementById('stTotalHours')
+    const stDT = document.getElementById('stDoneTasks')
+    const stSt = document.getElementById('stStreak')
+    const stSs = document.getElementById('stSessions')
+    if(stTH) stTH.textContent = Math.round(totalMins/60)+'ч'
+    if(stDT) stDT.textContent = doneTasks
+    if(stSt) stSt.textContent = maxStreak
+    if(stSs) stSs.textContent = allSess.length
+
+    const stHD = document.getElementById('stHoursDelta')
+    const stSD = document.getElementById('stSessionsDelta')
+    if(stHD) stHD.textContent = `Сегодня: ${focusMins}м`
+    if(stSD) stSD.textContent = `Сегодня: ${sessCount}`
+
+    // Recent sessions
+    await loadRecentSessions(allSess)
+  } catch(e) { console.warn('loadStats error:', e) }
+}
+
+async function loadRecentSessions(allSess) {
+  const el = document.getElementById('recentSessions')
+  if(!el) return
+  const sorted = [...allSess]
+    .filter(s=>s.completedAt)
+    .sort((a,b)=>(b.completedAt?.seconds||0)-(a.completedAt?.seconds||0))
+    .slice(0,8)
+  if(!sorted.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Сессий пока нет. Запусти таймер!</div>'
+    return
+  }
+  const typeLabel = {focus:'Фокус-сессия', short:'Короткий перерыв', long:'Длинный перерыв'}
+  const now = new Date()
+  el.innerHTML = sorted.map(s=>{
+    const ts = s.completedAt?.toDate ? s.completedAt.toDate() : new Date(s.completedAt?.seconds*1000)
+    const diffMs = now - ts
+    const diffMin = Math.floor(diffMs/60000)
+    const diffH   = Math.floor(diffMin/60)
+    const diffD   = Math.floor(diffH/24)
+    let timeAgo = diffD>0 ? `${diffD} дн. назад` : diffH>0 ? `${diffH}ч назад` : diffMin>0 ? `${diffMin}м назад` : 'только что'
+    const dateStr = ts.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})
+    return `<div class="activity-item">
+      <div class="activity-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="activity-info">
+        <div class="activity-task">${typeLabel[s.type]||'Сессия'}</div>
+        <div class="activity-time">${timeAgo} · ${dateStr}</div>
+      </div>
+      <div class="activity-dur">${s.duration}м</div>
+    </div>`
+  }).join('')
 }
 
 async function loadBarChart() {
@@ -1164,7 +1331,7 @@ function initHabits() {
   if(unsubHabits) unsubHabits()
   unsubHabits = onSnapshot(
     query(collection(db,'users',currentUser.uid,'habits'), orderBy('createdAt','asc')),
-    snap => { habitsData = snap.docs.map(d=>({id:d.id,...d.data()})); renderHabits(); renderHeatmap() }
+    snap => { habitsData = snap.docs.map(d=>({id:d.id,...d.data()})); renderHabits(); renderCalendar() }
   )
 }
 
@@ -1196,19 +1363,37 @@ function renderHabits() {
     : '<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px">Нет привычек. Добавь первую!</div>'
 }
 
-function renderHeatmap() {
-  const hg = document.getElementById('heatmapGrid'); hg.innerHTML = ''
-  const today = new Date()
-  for(let i=34;i>=0;i--) {
-    const d = new Date(today); d.setDate(today.getDate()-i)
-    const str = d.toISOString().split('T')[0]
-    const count = habitsData.filter(h=>(h.completedDates||[]).includes(str)).length
-    const l = habitsData.length ? Math.ceil((count/habitsData.length)*4) : 0
-    const cell = document.createElement('div')
-    cell.className = 'hc' + (count>0?' l'+l:'')
-    hg.appendChild(cell)
+let calYear = new Date().getFullYear()
+let calMonth = new Date().getMonth()
+const calMonthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
+
+function renderCalendar() {
+  const grid = document.getElementById('calGrid')
+  const nameEl = document.getElementById('calMonthName')
+  if(!grid||!nameEl) return
+  nameEl.textContent = calMonthNames[calMonth] + ' ' + calYear
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate()
+  const firstDow = (new Date(calYear, calMonth, 1).getDay()+6)%7 // 0=Mon
+
+  let html = ''
+  // Empty cells before first day
+  for(let i=0;i<firstDow;i++) html += '<div class="cal-cell"></div>'
+  // Days
+  for(let d=1;d<=daysInMonth;d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+    const count = habitsData.filter(h=>(h.completedDates||[]).includes(dateStr)).length
+    const maxH  = habitsData.length || 1
+    const l     = count>0 ? Math.ceil((count/maxH)*4) : 0
+    const isToday = dateStr===todayStr
+    html += `<div class="cal-cell ${count>0?'has-activity l'+l:''} ${isToday?'today':''}" title="${count} привычек">${d}</div>`
   }
+  grid.innerHTML = html
 }
+
+window.calPrev = function(){ calMonth--; if(calMonth<0){calMonth=11;calYear--} renderCalendar() }
+window.calNext = function(){ calMonth++; if(calMonth>11){calMonth=0;calYear++} renderCalendar() }
 
 window.toggleHabit = async function(id) {
   if(!currentUser) return
