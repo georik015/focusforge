@@ -629,6 +629,15 @@ body{
 /* ── Deep focus button ── */
 .btn-deep-focus{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:10px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.07);color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;margin-top:10px}
 .btn-deep-focus:hover{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.5);color:#c4b5fd}
+/* ── Distraction log ── */
+.distraction-row{display:none;align-items:center;justify-content:center;gap:10px;margin-top:8px;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.distraction-row.show{display:flex}
+.btn-distract{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;border:1px solid rgba(248,113,113,.25);background:rgba(248,113,113,.07);color:#fca5a5;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-distract:hover{background:rgba(248,113,113,.18);border-color:rgba(248,113,113,.5)}
+.btn-distract:active{transform:scale(.93)}
+.distract-count{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.distract-count span{font-weight:700;color:#fca5a5}
 /* ── Calendar ── */
 .calendar-wrap{margin-top:20px}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
@@ -827,6 +836,13 @@ body{
         <span>Сессий сегодня: <strong id="sessCount">0</strong></span>
         <span>Фокус-время: <strong id="focusTime">0м</strong></span>
       </div>
+      <div class="distraction-row" id="distractRow">
+        <button class="btn-distract" onclick="logDistraction()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Я отвлёкся
+        </button>
+        <div class="distract-count">Отвлечений: <span id="distractNum">0</span></div>
+      </div>
       <button class="btn-deep-focus" onclick="enterDeepFocus()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         Режим глубокого фокуса
@@ -939,7 +955,7 @@ body{
       <div class="insight-card"><div class="insight-val" id="insQuality">—</div><div class="insight-label">Качество сессий ⭐</div></div>
       <div class="insight-card"><div class="insight-val" id="insXpWeek">—</div><div class="insight-label">XP за неделю</div></div>
       <div class="insight-card"><div class="insight-val" id="insFocusDays">—</div><div class="insight-label">Дней с фокусом</div></div>
-      <div class="insight-card"><div class="insight-val" id="insBestDay">—</div><div class="insight-label">Лучший день</div></div>
+      <div class="insight-card"><div class="insight-val" id="insDistract">—</div><div class="insight-label">Среднее отвлечений</div></div>
     </div>
   </div>
   <div class="charts-row">
@@ -1325,6 +1341,7 @@ window.toggleTimer = function(skipIntention) {
     document.getElementById('iconPause').style.display = 'none'
     document.getElementById('startLabel').textContent = 'Старт'
     const dfLbl = document.getElementById('dfBtnLabel'); if(dfLbl) dfLbl.textContent = 'Старт'
+    document.getElementById('distractRow')?.classList.remove('show')
     return
   }
   // Show intention modal for focus sessions (first start only)
@@ -1340,6 +1357,12 @@ window.toggleTimer = function(skipIntention) {
   document.getElementById('iconPause').style.display = ''
   document.getElementById('startLabel').textContent = 'Пауза'
   const dfLbl = document.getElementById('dfBtnLabel'); if(dfLbl) dfLbl.textContent = 'Пауза'
+  // Show distraction log only for focus sessions
+  if(MODES[curMode].type === 'focus') {
+    distractionCount = 0
+    const dnEl = document.getElementById('distractNum'); if(dnEl) dnEl.textContent = '0'
+    document.getElementById('distractRow')?.classList.add('show')
+  }
   timerInterval = setInterval(async () => {
       if(secs > 0) {
         secs--; updateTimer()
@@ -1351,6 +1374,7 @@ window.toggleTimer = function(skipIntention) {
         document.getElementById('iconPause').style.display = 'none'
         document.getElementById('startLabel').textContent = 'Старт'
         const dfLbl = document.getElementById('dfBtnLabel'); if(dfLbl) dfLbl.textContent = 'Старт'
+        document.getElementById('distractRow')?.classList.remove('show')
         playBeep()
         if(MODES[curMode].type === 'focus') {
           pomodoroCount++; updatePomoCycle()
@@ -1362,6 +1386,11 @@ window.toggleTimer = function(skipIntention) {
           reflSelectedStars = 0
           document.querySelectorAll('.star-btn').forEach(b=>b.classList.remove('active'))
           document.getElementById('reflectionInput').value = ''
+          // Show distraction count in reflection sub text
+          const reflSub = document.querySelector('#reflectionModal .modal-sub')
+          if(reflSub) reflSub.textContent = distractionCount > 0
+            ? `Сессия завершена! Ты отвлёкся ${distractionCount} раз. Насколько была продуктивной?`
+            : 'Сессия завершена! Насколько продуктивной она была?'
           document.getElementById('reflectionModal').classList.add('show')
         } else {
           showToast('Перерыв закончен! ⚡', 'Готов к следующей фокус-сессии?')
@@ -1682,6 +1711,17 @@ window.addHabit = async function() {
   document.getElementById('habitInput').value = ''
 }
 
+// ════════ DISTRACTION LOG (Flow-style) ════════
+let distractionCount = 0
+window.logDistraction = function() {
+  distractionCount++
+  const el = document.getElementById('distractNum')
+  if(el) el.textContent = distractionCount
+  // Brief flash feedback
+  const btn = document.querySelector('.btn-distract')
+  if(btn) { btn.style.background='rgba(248,113,113,.3)'; setTimeout(()=>btn.style.background='',400) }
+}
+
 // ════════ XP / LEVEL SYSTEM ════════
 const LEVELS = [
   {name:'Новичок',   min:0,    max:299,  emoji:'🌱'},
@@ -1809,26 +1849,20 @@ window.setReflStar = function(n) {
 }
 window.submitReflection = async function(save) {
   document.getElementById('reflectionModal').classList.remove('show')
-  if(save && currentUser) {
+  if(currentUser) {
     try {
       const note = document.getElementById('reflectionInput').value.trim()
       await addDoc(collection(db,'users',currentUser.uid,'sessions'), {
         type: lastSessionType, duration: pendingSessionDuration,
         completedAt: serverTimestamp(), xp: pendingXP,
-        quality: reflSelectedStars || null, note: note || null,
-        intention: currentIntention || null
-      })
-    } catch(e) {}
-  } else if(currentUser) {
-    // Save without rating
-    try {
-      await addDoc(collection(db,'users',currentUser.uid,'sessions'), {
-        type: lastSessionType, duration: pendingSessionDuration,
-        completedAt: serverTimestamp(), xp: pendingXP,
-        quality: null, note: null, intention: currentIntention || null
+        quality: (save && reflSelectedStars) || null,
+        note: (save && note) || null,
+        intention: currentIntention || null,
+        distractions: distractionCount || 0
       })
     } catch(e) {}
   }
+  distractionCount = 0
   currentIntention = ''
   const stars = save ? reflSelectedStars : 0
   const msgs = ['','Непродуктивно, но ты начал 👊','Сойдёт, продолжай 💪','Хорошая сессия! 🎯','Отличная работа! 🔥','Идеальная концентрация! 🚀']
@@ -1885,16 +1919,13 @@ async function loadInsights() {
     const fdEl = document.getElementById('insFocusDays')
     if(fdEl) fdEl.textContent = focusDays
 
-    // Best day of week
-    const dayNames = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
-    const dayCounts = Array(7).fill(0)
-    sessions.forEach(s => {
-      const ts = s.completedAt?.toDate ? s.completedAt.toDate() : null
-      if(ts) dayCounts[ts.getDay()]++
-    })
-    const bestDay = dayNames[dayCounts.indexOf(Math.max(...dayCounts))]
-    const bdEl = document.getElementById('insBestDay')
-    if(bdEl) bdEl.textContent = bestDay
+    // Average distractions
+    const sessWithDist = sessions.filter(s => typeof s.distractions === 'number')
+    const avgDist = sessWithDist.length
+      ? (sessWithDist.reduce((s,d)=>s+d.distractions,0)/sessWithDist.length).toFixed(1)
+      : '—'
+    const distEl = document.getElementById('insDistract')
+    if(distEl) distEl.textContent = avgDist
 
   } catch(e) { console.warn('Insights error:', e) }
 }
