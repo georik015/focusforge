@@ -512,6 +512,53 @@ body{
   .heatmap-grid{grid-template-columns:repeat(7,1fr);gap:4px}
   .hc{height:20px}
 }
+/* ── Pomodoro cycle ── */
+.pomo-cycle{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 4px}
+.pomo-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);transition:all .3s}
+.pomo-dot.done{background:#7c3aed;border-color:#a78bfa;box-shadow:0 0 8px rgba(124,58,237,.6)}
+.pomo-dot.current{background:rgba(124,58,237,.4);border-color:#a78bfa;animation:pomoPulse 1.5s ease-in-out infinite}
+@keyframes pomoPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.4)}50%{box-shadow:0 0 0 5px rgba(124,58,237,.0)}}
+/* ── Daily goal ── */
+.daily-goal-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px}
+.dg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dg-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.dg-score{font-size:20px;font-weight:900;background:linear-gradient(120deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.dg-progress{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.dg-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#06b6d4);border-radius:99px;transition:width .5s ease}
+.dg-label{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+.dg-goal-input{display:flex;align-items:center;gap:8px;margin-top:10px}
+.dg-goal-input span{font-size:12px;color:var(--muted)}
+.dg-num{width:48px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:700;text-align:center;padding:5px;outline:none}
+/* ── Ambient sounds ── */
+.ambient-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px}
+.ambient-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.amb-btn{flex:1;min-width:0;padding:8px 6px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px}
+.amb-btn:hover{color:#fff;border-color:rgba(124,58,237,.4)}
+.amb-btn.active{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#c4b5fd}
+.amb-vol{width:100%;margin-top:10px;accent-color:#7c3aed}
+/* ── Notes panel ── */
+.notes-editor{width:100%;min-height:200px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px;color:var(--text);font-size:14px;line-height:1.7;resize:vertical;outline:none;font-family:inherit;transition:border-color .2s}
+.notes-editor:focus{border-color:rgba(124,58,237,.4)}
+.notes-date-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.notes-date-tab{padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.notes-date-tab.active{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.4);color:#c4b5fd}
+.notes-save-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.notes-save-status{font-size:12px;color:var(--muted)}
+.btn-save-note{padding:9px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-save-note:hover{opacity:.9}
+/* ── Focus score badge in topbar ── */
+.score-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.1);font-size:12px;font-weight:700;color:#c4b5fd;cursor:default}
+/* ── Notification toast ── */
+.ff-toast{position:fixed;bottom:24px;right:24px;z-index:99999;background:linear-gradient(135deg,#1a1730,#0d0b1f);border:1px solid rgba(124,58,237,.4);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);transform:translateY(100px);opacity:0;transition:all .4s cubic-bezier(.34,1.56,.64,1);max-width:320px}
+.ff-toast.show{transform:translateY(0);opacity:1}
+.ff-toast-icon{font-size:24px;flex-shrink:0}
+.ff-toast-text{font-size:13px;color:var(--text);line-height:1.4}
+.ff-toast-title{font-weight:700;margin-bottom:2px}
+/* ── Weekly goal ── */
+.weekly-goal-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:20px}
+.wg-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+.wg-track{flex:1;height:8px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.wg-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#06b6d4);border-radius:99px;transition:width .5s}
 /* ── Time adjuster ── */
 .time-adjuster{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 4px}
 .tadj{width:38px;height:28px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;font-size:12px;font-weight:700;transition:all .2s}
@@ -632,6 +679,7 @@ body{
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <div class="notif-dot"></div>
     </div>
+    <div class="score-badge" id="focusScoreBadge" title="Фокус-счёт дня">⚡ <span id="focusScoreVal">—</span></div>
     <div class="topbar-avatar" id="topAvatar" title="Выйти" onclick="logout()" style="cursor:pointer;overflow:hidden"></div>
   </div>
 </header>
@@ -653,6 +701,10 @@ body{
   <div class="nav-item" onclick="showPanel('habits',this)">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <div class="tooltip">Привычки</div>
+  </div>
+  <div class="nav-item" onclick="showPanel('notes',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    <div class="tooltip">Заметки</div>
   </div>
   <div class="sidebar-spacer"></div>
   <div class="nav-item" onclick="showPanel('settings',this)">
@@ -683,6 +735,12 @@ body{
         <button class="s-tab active" onclick="setMode(0,this)">Фокус 25м</button>
         <button class="s-tab" onclick="setMode(1,this)">Перерыв 5м</button>
         <button class="s-tab" onclick="setMode(2,this)">Длинный 15м</button>
+      </div>
+      <div class="pomo-cycle" id="pomoCycle">
+        <div class="pomo-dot" id="pd0"></div>
+        <div class="pomo-dot" id="pd1"></div>
+        <div class="pomo-dot" id="pd2"></div>
+        <div class="pomo-dot" id="pd3"></div>
       </div>
       <div class="timer-ring-wrap">
         <svg width="200" height="200" viewBox="0 0 200 200">
@@ -730,6 +788,32 @@ body{
         <div class="ss-card"><div class="ss-val">12</div><div class="ss-key">Серия</div></div>
         <div class="ss-card"><div class="ss-val">47</div><div class="ss-key">Задач</div></div>
         <div class="ss-card"><div class="ss-val">+40%</div><div class="ss-key">Рост</div></div>
+      </div>
+      <div class="daily-goal-card">
+        <div class="dg-header">
+          <span class="dg-title">Цель дня</span>
+          <span class="dg-score" id="dgScore">0%</span>
+        </div>
+        <div class="dg-progress"><div class="dg-fill" id="dgFill" style="width:0%"></div></div>
+        <div class="dg-label">
+          <span id="dgDone">0 сессий выполнено</span>
+          <span id="dgGoalLabel">цель: 5</span>
+        </div>
+        <div class="dg-goal-input">
+          <span>Цель:</span>
+          <input class="dg-num" type="number" id="dgGoalInput" value="5" min="1" max="20" onchange="saveDailyGoal()"/>
+          <span>сессий</span>
+        </div>
+      </div>
+      <div class="ambient-card">
+        <div class="card-title">Фоновые звуки</div>
+        <div class="ambient-btns">
+          <button class="amb-btn" id="ambOff" onclick="setAmbient('off')">🔇 Тишина</button>
+          <button class="amb-btn" id="ambRain" onclick="setAmbient('rain')">🌧 Дождь</button>
+          <button class="amb-btn" id="ambWhite" onclick="setAmbient('white')">🌊 Белый</button>
+          <button class="amb-btn" id="ambBrown" onclick="setAmbient('brown')">🌿 Коричн.</button>
+        </div>
+        <input type="range" class="amb-vol" id="ambVol" min="0" max="100" value="30" oninput="setAmbientVolume(this.value)"/>
       </div>
       <div class="card">
         <div class="card-title">Подсказка дня</div>
@@ -819,6 +903,14 @@ body{
       <div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Сессий пока нет. Запусти таймер!</div>
     </div>
   </div>
+  <div class="weekly-goal-card">
+    <div class="card-title">Цель недели</div>
+    <div class="wg-row">
+      <span style="font-size:13px;color:var(--muted)"><span id="wgDone">0</span> / <input class="dg-num" type="number" id="wgGoalInput" value="10" min="1" max="50" onchange="saveWeeklyGoal()"/> сессий</span>
+      <div class="wg-track"><div class="wg-fill" id="wgFill" style="width:0%"></div></div>
+      <span id="wgPct" style="font-size:13px;font-weight:700;color:#a78bfa">0%</span>
+    </div>
+  </div>
 </div>
 
 <!-- ════ HABITS ════ -->
@@ -853,6 +945,19 @@ body{
   <div class="add-habit-row">
     <input class="habit-name-input" id="habitInput" placeholder="Новая привычка..." onkeydown="if(event.key==='Enter')addHabit()"/>
     <button class="btn-add-habit" onclick="addHabit()">+ Добавить</button>
+  </div>
+</div>
+
+<!-- ════ NOTES ════ -->
+<div class="panel" id="panel-notes">
+  <div class="panel-header">
+    <div><div class="panel-title">Заметки</div><div class="panel-sub">Фиксируй мысли и инсайты во время сессий</div></div>
+  </div>
+  <div class="notes-date-tabs" id="notesDateTabs"></div>
+  <textarea class="notes-editor" id="notesEditor" placeholder="Запиши свои мысли, идеи или план на сессию..."></textarea>
+  <div class="notes-save-row">
+    <span class="notes-save-status" id="notesSaveStatus"></span>
+    <button class="btn-save-note" onclick="saveNote()">Сохранить</button>
   </div>
 </div>
 
@@ -897,6 +1002,15 @@ body{
 </div>
 
 </main>
+</div>
+
+<!-- Toast notification -->
+<div class="ff-toast" id="ffToast">
+  <div class="ff-toast-icon">🎯</div>
+  <div class="ff-toast-text">
+    <div class="ff-toast-title" id="ffToastTitle">Сессия завершена!</div>
+    <div id="ffToastMsg">Отличная работа! Сделай перерыв.</div>
+  </div>
 </div>
 
 <script type="module">
@@ -1017,6 +1131,7 @@ onAuthStateChanged(auth, async user => {
     }
   } catch(e) { console.warn('Firestore profile error:', e) }
   initTasks(); initHabits(); loadStats(); loadSettings()
+  updateDailyGoal(); calcFocusScore(); requestNotifPerm(); updatePomoCycle()
 })
 
 window.logout = async () => { await signOut(auth); window.location.href = 'index.html' }
@@ -1031,7 +1146,8 @@ window.showPanel = function(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
   document.getElementById('panel-' + name).classList.add('active')
   el.classList.add('active')
-  if (name === 'stats') loadBarChart()
+  if (name === 'stats') { loadBarChart(); updateWeeklyGoal() }
+  if (name === 'notes') { initNotesDateTabs(); loadNote() }
 }
 
 // ── Tips ──
@@ -1099,11 +1215,19 @@ window.toggleTimer = function() {
         document.getElementById('iconPlay').style.display = ''
         document.getElementById('iconPause').style.display = 'none'
         document.getElementById('startLabel').textContent = 'Старт'
+        playBeep()
+        if(MODES[curMode].type === 'focus') {
+          pomodoroCount++; updatePomoCycle()
+          showToast('Фокус-сессия завершена! 🎯', `${MODES[curMode].mins} мин сфокусированной работы. Сделай перерыв!`)
+          showBrowserNotif('FocusForge', 'Фокус-сессия завершена! Время для перерыва.')
+        } else {
+          showToast('Перерыв закончен! ⚡', 'Готов к следующей фокус-сессии?')
+        }
         if(currentUser && MODES[curMode].type === 'focus') {
           await addDoc(collection(db,'users',currentUser.uid,'sessions'), {
             type: MODES[curMode].type, duration: MODES[curMode].mins, completedAt: serverTimestamp()
           })
-          loadStats()
+          loadStats(); updateDailyGoal(); calcFocusScore()
         }
       }
     }, 1000)
@@ -1417,6 +1541,192 @@ window.addHabit = async function() {
     name, streak:0, completedDates:[], createdAt: serverTimestamp()
   })
   document.getElementById('habitInput').value = ''
+}
+
+// ════════ AMBIENT SOUNDS ════════
+let ambCtx = null, ambSource = null, ambGain = null
+function stopAmbient() {
+  if(ambSource) { try { ambSource.stop() } catch(e){} ambSource = null }
+}
+window.setAmbient = function(type) {
+  document.querySelectorAll('.amb-btn').forEach(b => b.classList.remove('active'))
+  const idMap = {off:'ambOff', rain:'ambRain', white:'ambWhite', brown:'ambBrown'}
+  if(idMap[type]) document.getElementById(idMap[type]).classList.add('active')
+  stopAmbient()
+  if(type === 'off') return
+  if(!ambCtx) ambCtx = new (window.AudioContext || window.webkitAudioContext)()
+  ambGain = ambCtx.createGain()
+  ambGain.gain.value = (document.getElementById('ambVol').value || 30) / 100
+  ambGain.connect(ambCtx.destination)
+  const bufLen = ambCtx.sampleRate * 2
+  const buf = ambCtx.createBuffer(1, bufLen, ambCtx.sampleRate)
+  const data = buf.getChannelData(0)
+  if(type === 'white') {
+    for(let i=0;i<bufLen;i++) data[i] = Math.random()*2-1
+  } else if(type === 'brown') {
+    let last = 0
+    for(let i=0;i<bufLen;i++) { const w=Math.random()*2-1; last=(last+.02*w)/1.02; data[i]=last*3.5 }
+  } else if(type === 'rain') {
+    for(let i=0;i<bufLen;i++) data[i] = (Math.random()*2-1)*(Math.random()<.003?1:.08)
+  }
+  ambSource = ambCtx.createBufferSource()
+  ambSource.buffer = buf; ambSource.loop = true
+  ambSource.connect(ambGain); ambSource.start()
+}
+window.setAmbientVolume = function(val) {
+  if(ambGain) ambGain.gain.value = val/100
+}
+// Init ambient buttons
+document.getElementById('ambOff').classList.add('active')
+
+// ════════ BEEP + TOAST ════════
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain); gain.connect(ctx.destination)
+    osc.frequency.value = 528; osc.type = 'sine'
+    gain.gain.setValueAtTime(.4, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+1.2)
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+1.2)
+  } catch(e) {}
+}
+function showToast(title, msg) {
+  const t = document.getElementById('ffToast')
+  document.getElementById('ffToastTitle').textContent = title
+  document.getElementById('ffToastMsg').textContent = msg
+  t.classList.add('show')
+  setTimeout(()=>t.classList.remove('show'), 4500)
+}
+
+// ════════ BROWSER NOTIFICATIONS ════════
+async function requestNotifPerm() {
+  if('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission()
+  }
+}
+function showBrowserNotif(title, body) {
+  if('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body })
+  }
+}
+
+// ════════ POMODORO CYCLE ════════
+let pomodoroCount = 0
+function updatePomoCycle() {
+  for(let i=0;i<4;i++) {
+    const dot = document.getElementById('pd'+i)
+    if(!dot) continue
+    dot.classList.remove('done','current')
+    if(i < pomodoroCount % 4) dot.classList.add('done')
+    else if(i === pomodoroCount % 4) dot.classList.add('current')
+  }
+}
+
+// ════════ DAILY GOAL ════════
+async function updateDailyGoal() {
+  if(!currentUser) return
+  const goal = parseInt(document.getElementById('dgGoalInput').value) || 5
+  const today = new Date(); today.setHours(0,0,0,0)
+  try {
+    const snap = await getDocs(query(
+      collection(db,'users',currentUser.uid,'sessions'),
+      where('completedAt','>=',Timestamp.fromDate(today)),
+      where('type','==','focus')
+    ))
+    const done = snap.size
+    const pct = Math.min(100, Math.round(done/goal*100))
+    document.getElementById('dgScore').textContent = pct+'%'
+    document.getElementById('dgFill').style.width = pct+'%'
+    document.getElementById('dgDone').textContent = done+' сессий выполнено'
+    document.getElementById('dgGoalLabel').textContent = 'цель: '+goal
+  } catch(e) {}
+}
+window.saveDailyGoal = function() { updateDailyGoal() }
+
+// ════════ FOCUS SCORE ════════
+async function calcFocusScore() {
+  if(!currentUser) return
+  const today = new Date(); today.setHours(0,0,0,0)
+  try {
+    const snap = await getDocs(query(
+      collection(db,'users',currentUser.uid,'sessions'),
+      where('completedAt','>=',Timestamp.fromDate(today)),
+      where('type','==','focus')
+    ))
+    const mins = snap.docs.reduce((s,d)=>s+(d.data().duration||0),0)
+    const score = Math.min(100, Math.round(mins/2.4)) // 240 mins = 100%
+    document.getElementById('focusScoreVal').textContent = score
+  } catch(e) {}
+}
+
+// ════════ WEEKLY GOAL ════════
+async function updateWeeklyGoal() {
+  if(!currentUser) return
+  const goal = parseInt(document.getElementById('wgGoalInput')?.value) || 10
+  const now = new Date()
+  const weekStart = new Date(now); weekStart.setDate(now.getDate()-6); weekStart.setHours(0,0,0,0)
+  try {
+    const snap = await getDocs(query(
+      collection(db,'users',currentUser.uid,'sessions'),
+      where('completedAt','>=',Timestamp.fromDate(weekStart)),
+      where('type','==','focus')
+    ))
+    const done = snap.size
+    const pct = Math.min(100, Math.round(done/goal*100))
+    const wgDone = document.getElementById('wgDone')
+    const wgFill = document.getElementById('wgFill')
+    const wgPct  = document.getElementById('wgPct')
+    if(wgDone) wgDone.textContent = done
+    if(wgFill) wgFill.style.width = pct+'%'
+    if(wgPct)  wgPct.textContent  = pct+'%'
+  } catch(e) {}
+}
+window.saveWeeklyGoal = function() { updateWeeklyGoal() }
+
+// ════════ NOTES ════════
+let currentNoteDate = new Date().toISOString().split('T')[0]
+
+function initNotesDateTabs() {
+  const tabs = document.getElementById('notesDateTabs')
+  if(!tabs) return
+  const todayStr = new Date().toISOString().split('T')[0]
+  const yesterStr = new Date(Date.now()-86400000).toISOString().split('T')[0]
+  const dates = []
+  for(let i=4;i>=0;i--) {
+    const d = new Date(); d.setDate(d.getDate()-i)
+    dates.push(d.toISOString().split('T')[0])
+  }
+  tabs.innerHTML = dates.map(d => {
+    const label = d===todayStr ? 'Сегодня' : d===yesterStr ? 'Вчера' :
+      new Date(d).toLocaleDateString('ru',{day:'numeric',month:'short'})
+    return `<button class="notes-date-tab ${d===currentNoteDate?'active':''}" onclick="selectNoteDate('${d}')">${label}</button>`
+  }).join('')
+}
+window.selectNoteDate = function(date) {
+  currentNoteDate = date
+  initNotesDateTabs()
+  loadNote()
+}
+async function loadNote() {
+  if(!currentUser) return
+  try {
+    const ref = doc(db,'users',currentUser.uid,'notes',currentNoteDate)
+    const snap = await getDoc(ref)
+    document.getElementById('notesEditor').value = snap.exists() ? (snap.data().text||'') : ''
+    document.getElementById('notesSaveStatus').textContent = ''
+  } catch(e) {}
+}
+window.saveNote = async function() {
+  if(!currentUser) return
+  const text = document.getElementById('notesEditor').value
+  const ref = doc(db,'users',currentUser.uid,'notes',currentNoteDate)
+  try {
+    await setDoc(ref, { text, updatedAt: serverTimestamp() })
+    document.getElementById('notesSaveStatus').textContent = '✓ Сохранено'
+    setTimeout(()=>{ document.getElementById('notesSaveStatus').textContent = '' }, 2500)
+  } catch(e) {}
 }
 
 // ════════ SETTINGS ════════
