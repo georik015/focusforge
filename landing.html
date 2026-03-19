@@ -1335,6 +1335,25 @@ nav{
 </footer>
 
 <script type="module">
+// ── Firebase Auth imports (must be at top of module) ──
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
+
+const _fbApp = initializeApp({
+  apiKey: "AIzaSyBQCXIrtxGZpsUkIR-ouNyiwdNmgVVpnxM",
+  authDomain: "focusforge-be211.firebaseapp.com",
+  projectId: "focusforge-be211",
+  storageBucket: "focusforge-be211.firebasestorage.app",
+  messagingSenderId: "312745703313",
+  appId: "1:312745703313:web:90721c0acf0c5ebf1a4c30"
+})
+const _auth = getAuth(_fbApp)
+const _gProvider = new GoogleAuthProvider()
+
+onAuthStateChanged(_auth, user => {
+  if (user) window.location.href = 'app.html'
+})
+
 // ── Scroll reveal ──
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible') })
@@ -1535,24 +1554,7 @@ overlay.addEventListener('click', e => { if(e.target === overlay) closeAuth() })
 // Close on Escape
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeAuth() })
 
-// ── Firebase Auth ──
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
-
-const _fbApp = initializeApp({
-  apiKey: "AIzaSyBQCXIrtxGZpsUkIR-ouNyiwdNmgVVpnxM",
-  authDomain: "focusforge-be211.firebaseapp.com",
-  projectId: "focusforge-be211",
-  storageBucket: "focusforge-be211.firebasestorage.app",
-  messagingSenderId: "312745703313",
-  appId: "1:312745703313:web:90721c0acf0c5ebf1a4c30"
-})
-const _auth = getAuth(_fbApp)
-const _gProvider = new GoogleAuthProvider()
-
-onAuthStateChanged(_auth, user => {
-  if (user) window.location.href = 'app.html'
-})
+// ── Firebase Auth (imports and init moved to top of module) ──
 
 function showAuthError(msg) {
   let err = document.getElementById('authError')
