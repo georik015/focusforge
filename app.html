@@ -579,6 +579,56 @@ body{
 /* ── Stats real ── */
 .stat-card .stat-val{font-size:clamp(28px,4vw,36px);font-weight:900;background:linear-gradient(120deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .stat-card .stat-delta{font-size:11px;margin-top:4px}
+/* ── Level badge ── */
+.level-badge{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 10px;border-radius:8px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.1);min-width:86px;cursor:default}
+.level-name{color:#c4b5fd;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.level-xp-bar{width:100%;height:3px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden}
+.level-xp-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#06b6d4);border-radius:99px;transition:width .6s ease}
+@keyframes levelUp{0%{transform:scale(1)}30%{transform:scale(1.25)}70%{transform:scale(.95)}100%{transform:scale(1)}}
+.level-badge.leveled-up{animation:levelUp .5s ease;border-color:rgba(124,58,237,.7);background:rgba(124,58,237,.25)}
+/* ── Deep Focus Overlay ── */
+.deep-focus-overlay{position:fixed;inset:0;z-index:9990;background:#02010a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.deep-focus-overlay.show{display:flex}
+.df-label{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,.22)}
+.df-timer{font-size:clamp(80px,16vw,140px);font-weight:900;letter-spacing:-5px;font-variant-numeric:tabular-nums;background:linear-gradient(120deg,#fff 0%,#c4b5fd 60%,#67e8f9 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.df-task{font-size:14px;color:rgba(255,255,255,.35);max-width:380px;text-align:center;font-style:italic}
+.df-intention{font-size:13px;color:rgba(167,139,250,.5);max-width:380px;text-align:center}
+.df-controls{display:flex;gap:10px;margin-top:12px}
+.df-btn{padding:11px 26px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.df-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.df-btn.primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);border-color:transparent;color:#fff}
+.df-exit{position:absolute;top:18px;right:18px;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.25);font-size:12px;cursor:pointer;transition:all .2s}
+.df-exit:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+.df-pomo{display:flex;gap:7px;margin-top:4px}
+.df-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);transition:all .3s}
+.df-dot.done{background:#7c3aed;border-color:#a78bfa}
+.df-dot.current{background:rgba(124,58,237,.4);border-color:#a78bfa}
+/* ── Intention Modal ── */
+.modal-overlay{position:fixed;inset:0;z-index:9995;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal-box{background:#0d0b1f;border:1px solid rgba(124,58,237,.35);border-radius:20px;padding:28px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:5px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+.modal-input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;resize:none;font-family:inherit;transition:border-color .2s}
+.modal-input:focus{border-color:rgba(124,58,237,.5)}
+.modal-btns{display:flex;gap:10px;margin-top:14px}
+.modal-btn{flex:1;padding:11px;border-radius:11px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;min-height:44px}
+.modal-btn.primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff}
+.modal-btn.secondary{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted)}
+.modal-btn:hover{opacity:.85}
+/* ── Reflection Stars ── */
+.star-row{display:flex;gap:6px;justify-content:center;margin:14px 0 6px}
+.star-btn{font-size:30px;cursor:pointer;transition:transform .15s opacity .15s;opacity:.25;background:none;border:none;padding:4px}
+.star-btn.active{opacity:1;transform:scale(1.12)}
+/* ── Insights ── */
+.insights-section{margin-bottom:20px}
+.insights-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.insight-card{background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.18);border-radius:14px;padding:15px;text-align:center}
+.insight-val{font-size:20px;font-weight:900;background:linear-gradient(120deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.insight-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;line-height:1.4}
+/* ── Deep focus button ── */
+.btn-deep-focus{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:10px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.07);color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;margin-top:10px}
+.btn-deep-focus:hover{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.5);color:#c4b5fd}
 /* ── Calendar ── */
 .calendar-wrap{margin-top:20px}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
@@ -680,6 +730,10 @@ body{
       <div class="notif-dot"></div>
     </div>
     <div class="score-badge" id="focusScoreBadge" title="Фокус-счёт дня">⚡ <span id="focusScoreVal">—</span></div>
+    <div class="level-badge" id="levelBadge" title="Твой уровень">
+      <div class="level-name" id="levelName">Новичок</div>
+      <div class="level-xp-bar"><div class="level-xp-fill" id="levelXpFill" style="width:0%"></div></div>
+    </div>
     <div class="topbar-avatar" id="topAvatar" title="Выйти" onclick="logout()" style="cursor:pointer;overflow:hidden"></div>
   </div>
 </header>
@@ -773,6 +827,10 @@ body{
         <span>Сессий сегодня: <strong id="sessCount">0</strong></span>
         <span>Фокус-время: <strong id="focusTime">0м</strong></span>
       </div>
+      <button class="btn-deep-focus" onclick="enterDeepFocus()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        Режим глубокого фокуса
+      </button>
     </div>
     <div class="focus-side">
       <div class="current-task-card">
@@ -872,6 +930,17 @@ body{
     <div class="stat-card"><div class="stat-val" id="stDoneTasks">0</div><div class="stat-label">Задач закрыто</div><div class="stat-delta" id="stTasksDelta">Всего выполнено</div></div>
     <div class="stat-card"><div class="stat-val" id="stStreak">0</div><div class="stat-label">Дней серии</div><div class="stat-delta" id="stStreakDelta">Привычки подряд</div></div>
     <div class="stat-card"><div class="stat-val" id="stSessions">0</div><div class="stat-label">Сессий всего</div><div class="stat-delta" id="stSessionsDelta">Фокус-сессии</div></div>
+  </div>
+  <div class="insights-section">
+    <div class="card-title" style="margin-bottom:12px">Инсайты</div>
+    <div class="insights-grid" id="insightsGrid">
+      <div class="insight-card"><div class="insight-val" id="insAvgSess">—</div><div class="insight-label">Средняя длина сессии</div></div>
+      <div class="insight-card"><div class="insight-val" id="insPeakHour">—</div><div class="insight-label">Пиковый час фокуса</div></div>
+      <div class="insight-card"><div class="insight-val" id="insQuality">—</div><div class="insight-label">Качество сессий ⭐</div></div>
+      <div class="insight-card"><div class="insight-val" id="insXpWeek">—</div><div class="insight-label">XP за неделю</div></div>
+      <div class="insight-card"><div class="insight-val" id="insFocusDays">—</div><div class="insight-label">Дней с фокусом</div></div>
+      <div class="insight-card"><div class="insight-val" id="insBestDay">—</div><div class="insight-label">Лучший день</div></div>
+    </div>
   </div>
   <div class="charts-row">
     <div class="card">
@@ -1004,6 +1073,60 @@ body{
 </main>
 </div>
 
+<!-- Deep Focus Overlay -->
+<div class="deep-focus-overlay" id="deepFocusOverlay">
+  <button class="df-exit" onclick="exitDeepFocus()">✕ Выйти</button>
+  <div class="df-label" id="dfLabel">Глубокий фокус</div>
+  <div class="df-timer" id="dfTimer">25:00</div>
+  <div class="df-task" id="dfTask"></div>
+  <div class="df-intention" id="dfIntention"></div>
+  <div class="df-pomo">
+    <div class="df-dot" id="dfd0"></div>
+    <div class="df-dot" id="dfd1"></div>
+    <div class="df-dot" id="dfd2"></div>
+    <div class="df-dot" id="dfd3"></div>
+  </div>
+  <div class="df-controls">
+    <button class="df-btn primary" onclick="toggleTimer()">
+      <span id="dfBtnLabel">Старт</span>
+    </button>
+    <button class="df-btn" onclick="resetTimer()">Сброс</button>
+  </div>
+</div>
+
+<!-- Intention Modal -->
+<div class="modal-overlay" id="intentionModal">
+  <div class="modal-box">
+    <div class="modal-title">🎯 Намерение на сессию</div>
+    <div class="modal-sub">Что именно ты хочешь сделать за эти <span id="intentionMins">25</span> минут?</div>
+    <textarea class="modal-input" id="intentionInput" rows="2" placeholder="Например: написать введение к статье, разобрать 10 задач из беклога..."></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="submitIntention('')">Без намерения</button>
+      <button class="modal-btn primary" onclick="submitIntention(document.getElementById('intentionInput').value)">Начать →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reflection Modal -->
+<div class="modal-overlay" id="reflectionModal">
+  <div class="modal-box">
+    <div class="modal-title">✨ Рефлексия</div>
+    <div class="modal-sub">Сессия завершена! Насколько продуктивной она была?</div>
+    <div class="star-row" id="starRow">
+      <button class="star-btn" onclick="setReflStar(1)">⭐</button>
+      <button class="star-btn" onclick="setReflStar(2)">⭐</button>
+      <button class="star-btn" onclick="setReflStar(3)">⭐</button>
+      <button class="star-btn" onclick="setReflStar(4)">⭐</button>
+      <button class="star-btn" onclick="setReflStar(5)">⭐</button>
+    </div>
+    <textarea class="modal-input" id="reflectionInput" rows="2" placeholder="Что удалось? Что отвлекло? (необязательно)"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="submitReflection()">Пропустить</button>
+      <button class="modal-btn primary" onclick="submitReflection(true)">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast notification -->
 <div class="ff-toast" id="ffToast">
   <div class="ff-toast-icon">🎯</div>
@@ -1131,7 +1254,7 @@ onAuthStateChanged(auth, async user => {
     }
   } catch(e) { console.warn('Firestore profile error:', e) }
   initTasks(); initHabits(); loadStats(); loadSettings()
-  updateDailyGoal(); calcFocusScore(); requestNotifPerm(); updatePomoCycle()
+  updateDailyGoal(); calcFocusScore(); requestNotifPerm(); updatePomoCycle(); loadXP()
 })
 
 window.logout = async () => { await signOut(auth); window.location.href = 'index.html' }
@@ -1146,7 +1269,7 @@ window.showPanel = function(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
   document.getElementById('panel-' + name).classList.add('active')
   el.classList.add('active')
-  if (name === 'stats') { loadBarChart(); updateWeeklyGoal() }
+  if (name === 'stats') { loadBarChart(); updateWeeklyGoal(); loadInsights() }
   if (name === 'notes') { initNotesDateTabs(); loadNote() }
 }
 
@@ -1195,12 +1318,20 @@ window.adjustTime = function(delta) {
   updateTimer()
 }
 
-window.toggleTimer = function() {
+window.toggleTimer = function(skipIntention) {
   if(timerRunning) {
     clearInterval(timerInterval); timerRunning = false
     document.getElementById('iconPlay').style.display = ''
     document.getElementById('iconPause').style.display = 'none'
     document.getElementById('startLabel').textContent = 'Старт'
+    const dfLbl = document.getElementById('dfBtnLabel'); if(dfLbl) dfLbl.textContent = 'Старт'
+    return
+  }
+  // Show intention modal for focus sessions (first start only)
+  if(!skipIntention && MODES[curMode].type === 'focus') {
+    document.getElementById('intentionInput').value = ''
+    document.getElementById('intentionMins').textContent = MODES[curMode].mins
+    document.getElementById('intentionModal').classList.add('show')
     return
   }
   timerRunning = true
@@ -1208,26 +1339,32 @@ window.toggleTimer = function() {
   document.getElementById('iconPlay').style.display = 'none'
   document.getElementById('iconPause').style.display = ''
   document.getElementById('startLabel').textContent = 'Пауза'
+  const dfLbl = document.getElementById('dfBtnLabel'); if(dfLbl) dfLbl.textContent = 'Пауза'
   timerInterval = setInterval(async () => {
-      if(secs > 0) { secs--; updateTimer() }
-      else {
+      if(secs > 0) {
+        secs--; updateTimer()
+        const dfT = document.getElementById('dfTimer')
+        if(dfT) dfT.textContent = document.getElementById('timerNum').textContent
+      } else {
         clearInterval(timerInterval); timerRunning = false
         document.getElementById('iconPlay').style.display = ''
         document.getElementById('iconPause').style.display = 'none'
         document.getElementById('startLabel').textContent = 'Старт'
+        const dfLbl = document.getElementById('dfBtnLabel'); if(dfLbl) dfLbl.textContent = 'Старт'
         playBeep()
         if(MODES[curMode].type === 'focus') {
           pomodoroCount++; updatePomoCycle()
-          showToast('Фокус-сессия завершена! 🎯', `${MODES[curMode].mins} мин сфокусированной работы. Сделай перерыв!`)
           showBrowserNotif('FocusForge', 'Фокус-сессия завершена! Время для перерыва.')
+          // Show reflection modal instead of toast directly
+          pendingSessionDuration = MODES[curMode].mins
+          lastSessionType = MODES[curMode].type
+          pendingXP = calcXPForSession(MODES[curMode].mins, getSelectedTaskPriority())
+          reflSelectedStars = 0
+          document.querySelectorAll('.star-btn').forEach(b=>b.classList.remove('active'))
+          document.getElementById('reflectionInput').value = ''
+          document.getElementById('reflectionModal').classList.add('show')
         } else {
           showToast('Перерыв закончен! ⚡', 'Готов к следующей фокус-сессии?')
-        }
-        if(currentUser && MODES[curMode].type === 'focus') {
-          await addDoc(collection(db,'users',currentUser.uid,'sessions'), {
-            type: MODES[curMode].type, duration: MODES[curMode].mins, completedAt: serverTimestamp()
-          })
-          loadStats(); updateDailyGoal(); calcFocusScore()
         }
       }
     }, 1000)
@@ -1239,7 +1376,9 @@ window.resetTimer = function() {
   document.getElementById('iconPlay').style.display = ''
   document.getElementById('iconPause').style.display = 'none'
   document.getElementById('startLabel').textContent = 'Старт'
+  const dfLbl = document.getElementById('dfBtnLabel'); if(dfLbl) dfLbl.textContent = 'Старт'
   updateTimer()
+  const dfT = document.getElementById('dfTimer'); if(dfT) dfT.textContent = document.getElementById('timerNum').textContent
 }
 updateTimer()
 
@@ -1543,6 +1682,223 @@ window.addHabit = async function() {
   document.getElementById('habitInput').value = ''
 }
 
+// ════════ XP / LEVEL SYSTEM ════════
+const LEVELS = [
+  {name:'Новичок',   min:0,    max:299,  emoji:'🌱'},
+  {name:'Практикант',min:300,  max:999,  emoji:'⚡'},
+  {name:'Мастер',    min:1000, max:2999, emoji:'🔥'},
+  {name:'Эксперт',   min:3000, max:7999, emoji:'💎'},
+  {name:'Легенда',   min:8000, max:Infinity, emoji:'👑'},
+]
+let totalXP = 0
+
+function getLevelData(xp) {
+  const lvl = LEVELS.findLast(l => xp >= l.min) || LEVELS[0]
+  const next = LEVELS[LEVELS.indexOf(lvl)+1]
+  const pct  = next ? Math.round((xp - lvl.min)/(next.min - lvl.min)*100) : 100
+  return { lvl, next, pct }
+}
+function calcXPForSession(duration, priority) {
+  const base = duration
+  const mult = {high:1.5, mid:1.2, low:1.0}[priority] || 1.0
+  const bonus = duration >= 25 ? 15 : 0
+  return Math.round(base * mult + bonus)
+}
+function getSelectedTaskPriority() {
+  const sel = document.getElementById('ctSelect')
+  const option = sel?.options[sel.selectedIndex]?.text || ''
+  if(option.includes('Высокий')) return 'high'
+  if(option.includes('Низкий'))  return 'low'
+  return 'mid'
+}
+function updateLevelDisplay(xp, leveledUp) {
+  const { lvl, pct } = getLevelData(xp)
+  const badge = document.getElementById('levelBadge')
+  const nameEl = document.getElementById('levelName')
+  const fillEl = document.getElementById('levelXpFill')
+  if(nameEl) nameEl.textContent = lvl.emoji + ' ' + lvl.name
+  if(fillEl) fillEl.style.width = pct + '%'
+  if(badge && leveledUp) {
+    badge.classList.add('leveled-up')
+    setTimeout(()=>badge.classList.remove('leveled-up'), 600)
+    showToast('🎉 Новый уровень!', `Ты достиг уровня ${lvl.name}!`)
+  }
+}
+async function loadXP() {
+  if(!currentUser) return
+  try {
+    const snap = await getDoc(doc(db,'users',currentUser.uid))
+    totalXP = snap.data()?.totalXP || 0
+    updateLevelDisplay(totalXP, false)
+  } catch(e) {}
+}
+async function awardXP(xp) {
+  if(!currentUser || xp <= 0) return
+  const prevLevel = getLevelData(totalXP).lvl
+  totalXP += xp
+  const newLevel = getLevelData(totalXP).lvl
+  const leveledUp = newLevel !== prevLevel
+  try {
+    await updateDoc(doc(db,'users',currentUser.uid), { totalXP })
+  } catch(e) {}
+  updateLevelDisplay(totalXP, leveledUp)
+}
+
+// ════════ DEEP FOCUS MODE ════════
+let deepFocusActive = false
+window.enterDeepFocus = function() {
+  deepFocusActive = true
+  const overlay = document.getElementById('deepFocusOverlay')
+  overlay.classList.add('show')
+  // Sync timer display
+  const dfT = document.getElementById('dfTimer')
+  if(dfT) dfT.textContent = document.getElementById('timerNum').textContent
+  // Sync task name
+  const sel = document.getElementById('ctSelect')
+  const dfTask = document.getElementById('dfTask')
+  if(dfTask) dfTask.textContent = sel?.options[sel.selectedIndex]?.text || ''
+  // Sync mode label
+  const dfLabel = document.getElementById('dfLabel')
+  if(dfLabel) dfLabel.textContent = MODES[curMode].label.toUpperCase()
+  // Sync pomo dots
+  syncDfPomoDots()
+  // Sync btn label
+  const dfLbl = document.getElementById('dfBtnLabel')
+  if(dfLbl) dfLbl.textContent = timerRunning ? 'Пауза' : 'Старт'
+  // Request fullscreen
+  try { overlay.requestFullscreen?.() } catch(e) {}
+}
+window.exitDeepFocus = function() {
+  deepFocusActive = false
+  document.getElementById('deepFocusOverlay').classList.remove('show')
+  try { document.exitFullscreen?.() } catch(e) {}
+}
+function syncDfPomoDots() {
+  for(let i=0;i<4;i++) {
+    const d = document.getElementById('dfd'+i); if(!d) continue
+    d.classList.remove('done','current')
+    if(i < pomodoroCount % 4) d.classList.add('done')
+    else if(i === pomodoroCount % 4) d.classList.add('current')
+  }
+}
+// ESC exits deep focus
+document.addEventListener('keydown', e => { if(e.key==='Escape') exitDeepFocus() })
+
+// ════════ INTENTION MODAL ════════
+let currentIntention = ''
+let pendingSessionDuration = 0, lastSessionType = 'focus', pendingXP = 0
+
+window.submitIntention = function(text) {
+  currentIntention = (text||'').trim()
+  document.getElementById('intentionModal').classList.remove('show')
+  // Update deep focus intention display
+  const dfInt = document.getElementById('dfIntention')
+  if(dfInt) dfInt.textContent = currentIntention ? `"${currentIntention}"` : ''
+  // Actually start timer
+  window.toggleTimer(true)
+}
+
+// ════════ REFLECTION MODAL ════════
+let reflSelectedStars = 0
+
+window.setReflStar = function(n) {
+  reflSelectedStars = n
+  document.querySelectorAll('.star-btn').forEach((b,i) => {
+    b.classList.toggle('active', i < n)
+  })
+}
+window.submitReflection = async function(save) {
+  document.getElementById('reflectionModal').classList.remove('show')
+  if(save && currentUser) {
+    try {
+      const note = document.getElementById('reflectionInput').value.trim()
+      await addDoc(collection(db,'users',currentUser.uid,'sessions'), {
+        type: lastSessionType, duration: pendingSessionDuration,
+        completedAt: serverTimestamp(), xp: pendingXP,
+        quality: reflSelectedStars || null, note: note || null,
+        intention: currentIntention || null
+      })
+    } catch(e) {}
+  } else if(currentUser) {
+    // Save without rating
+    try {
+      await addDoc(collection(db,'users',currentUser.uid,'sessions'), {
+        type: lastSessionType, duration: pendingSessionDuration,
+        completedAt: serverTimestamp(), xp: pendingXP,
+        quality: null, note: null, intention: currentIntention || null
+      })
+    } catch(e) {}
+  }
+  currentIntention = ''
+  const stars = save ? reflSelectedStars : 0
+  const msgs = ['','Непродуктивно, но ты начал 👊','Сойдёт, продолжай 💪','Хорошая сессия! 🎯','Отличная работа! 🔥','Идеальная концентрация! 🚀']
+  showToast('Сессия завершена! 🎯', stars>0 ? msgs[stars] : `${pendingSessionDuration} мин фокуса. Сделай перерыв!`)
+  await awardXP(pendingXP)
+  loadStats(); updateDailyGoal(); calcFocusScore()
+}
+
+// ════════ INSIGHTS ════════
+async function loadInsights() {
+  if(!currentUser) return
+  try {
+    const allSnap = await getDocs(query(
+      collection(db,'users',currentUser.uid,'sessions'),
+      where('type','==','focus')
+    ))
+    const sessions = allSnap.docs.map(d=>d.data())
+    if(!sessions.length) return
+
+    // Average session length
+    const avgLen = Math.round(sessions.reduce((s,d)=>s+(d.duration||0),0)/sessions.length)
+    const avgEl = document.getElementById('insAvgSess')
+    if(avgEl) avgEl.textContent = avgLen + 'м'
+
+    // Peak focus hour
+    const hourCounts = Array(24).fill(0)
+    sessions.forEach(s => {
+      const ts = s.completedAt?.toDate ? s.completedAt.toDate() : null
+      if(ts) hourCounts[ts.getHours()]++
+    })
+    const peakH = hourCounts.indexOf(Math.max(...hourCounts))
+    const peakEl = document.getElementById('insPeakHour')
+    if(peakEl) peakEl.textContent = peakH + ':00'
+
+    // Average quality (from reflection stars)
+    const rated = sessions.filter(s=>s.quality>0)
+    const avgQ = rated.length ? (rated.reduce((s,d)=>s+(d.quality||0),0)/rated.length).toFixed(1) : '—'
+    const qEl = document.getElementById('insQuality')
+    if(qEl) qEl.textContent = avgQ
+
+    // XP this week
+    const now = new Date()
+    const weekStart = new Date(now); weekStart.setDate(now.getDate()-6); weekStart.setHours(0,0,0,0)
+    const weekXP = sessions
+      .filter(s => { const ts = s.completedAt?.toDate?.(); return ts && ts >= weekStart })
+      .reduce((s,d)=>s+(d.xp||0),0)
+    const xpEl = document.getElementById('insXpWeek')
+    if(xpEl) xpEl.textContent = weekXP + ' XP'
+
+    // Days with at least 1 focus session (last 30 days)
+    const focusDays = new Set(sessions.map(s => {
+      const ts = s.completedAt?.toDate?.(); return ts ? ts.toISOString().split('T')[0] : null
+    }).filter(Boolean)).size
+    const fdEl = document.getElementById('insFocusDays')
+    if(fdEl) fdEl.textContent = focusDays
+
+    // Best day of week
+    const dayNames = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
+    const dayCounts = Array(7).fill(0)
+    sessions.forEach(s => {
+      const ts = s.completedAt?.toDate ? s.completedAt.toDate() : null
+      if(ts) dayCounts[ts.getDay()]++
+    })
+    const bestDay = dayNames[dayCounts.indexOf(Math.max(...dayCounts))]
+    const bdEl = document.getElementById('insBestDay')
+    if(bdEl) bdEl.textContent = bestDay
+
+  } catch(e) { console.warn('Insights error:', e) }
+}
+
 // ════════ AMBIENT SOUNDS ════════
 let ambCtx = null, ambSource = null, ambGain = null
 function stopAmbient() {
@@ -1622,6 +1978,7 @@ function updatePomoCycle() {
     if(i < pomodoroCount % 4) dot.classList.add('done')
     else if(i === pomodoroCount % 4) dot.classList.add('current')
   }
+  syncDfPomoDots()
 }
 
 // ════════ DAILY GOAL ════════
