@@ -579,6 +579,60 @@ body{
 /* ── Stats real ── */
 .stat-card .stat-val{font-size:clamp(28px,4vw,36px);font-weight:900;background:linear-gradient(120deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .stat-card .stat-delta{font-size:11px;margin-top:4px}
+/* ── Daily Forge Ritual ── */
+.ritual-overlay{position:fixed;inset:0;z-index:9996;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
+.ritual-overlay.show{display:flex}
+.ritual-box{background:#0d0b1f;border:1px solid rgba(124,58,237,.4);border-radius:22px;padding:30px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 28px 70px rgba(0,0,0,.8)}
+.ritual-header{text-align:center;margin-bottom:20px}
+.ritual-brand{font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#a78bfa;margin-bottom:4px}
+.ritual-dots{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.ritual-dot{width:28px;height:4px;border-radius:99px;background:rgba(255,255,255,.12);transition:all .3s}
+.ritual-dot.done{background:rgba(124,58,237,.5)}
+.ritual-dot.active{background:#a78bfa;box-shadow:0 0 8px rgba(167,139,250,.5)}
+.ritual-step{display:none}.ritual-step.active{display:block}
+.ritual-step-title{font-size:18px;font-weight:800;margin-bottom:4px}
+.ritual-step-sub{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.ritual-ystats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.rys-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.rys-val{font-size:18px;font-weight:900;background:linear-gradient(120deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.rys-key{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.ritual-task-list{display:flex;flex-direction:column;gap:6px;margin:12px 0;max-height:220px;overflow-y:auto}
+.ritual-task-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;transition:all .2s;font-size:13px}
+.ritual-task-item:hover{border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.06)}
+.ritual-task-item.selected{border-color:#a78bfa;background:rgba(124,58,237,.12)}
+.ritual-cb{width:20px;height:20px;border-radius:5px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s}
+.ritual-task-item.selected .ritual-cb{background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent;color:#fff}
+.ritual-energy-row{display:flex;gap:8px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+.ritual-energy-btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:22px;cursor:pointer;transition:all .2s;text-align:center;min-width:64px}
+.ritual-energy-btn:hover{border-color:rgba(124,58,237,.4);background:rgba(124,58,237,.1)}
+.ritual-energy-btn.active{border-color:#a78bfa;background:rgba(124,58,237,.2);box-shadow:0 0 12px rgba(124,58,237,.3)}
+.ritual-energy-btn small{display:block;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:.5px}
+.ritual-time-row{display:flex;gap:8px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+.ritual-time-btn{padding:10px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;color:var(--muted)}
+.ritual-time-btn:hover{border-color:rgba(124,58,237,.4);color:#fff}
+.ritual-time-btn.active{border-color:#a78bfa;background:rgba(124,58,237,.2);color:#c4b5fd}
+.ritual-nav{display:flex;gap:10px;margin-top:18px}
+.ritual-xp-banner{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+/* ── Top 3 Today Widget ── */
+.top3-card{background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.22);border-radius:14px;padding:14px}
+.top3-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.top3-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa}
+.top3-energy-badge{font-size:11px;color:var(--muted)}
+.top3-item{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;cursor:pointer;transition:color .15s}
+.top3-item:last-child{border-bottom:none}
+.top3-item:hover{color:#fff}
+.top3-cb{width:18px;height:18px;border-radius:4px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s}
+.top3-item.t3done .top3-cb{background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent}
+.top3-item.t3done .top3-text{text-decoration:line-through;color:var(--muted)}
+.top3-empty{font-size:12px;color:var(--muted);text-align:center;padding:8px;font-style:italic}
+/* ── Task outcome in reflection ── */
+.refl-task-row{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
+.refl-task-label{font-size:10px;color:var(--muted);margin-bottom:7px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.refl-task-name{font-size:13px;font-weight:600;color:#c4b5fd;margin-bottom:10px;padding:6px 10px;background:rgba(124,58,237,.1);border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.refl-task-btns{display:flex;gap:6px}
+.rtb{flex:1;padding:8px 4px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.rtb:hover{border-color:rgba(124,58,237,.4);color:#fff}
+.rtb.active{border-color:#a78bfa;background:rgba(124,58,237,.2);color:#c4b5fd}
 /* ── Focus Tree (Forest-inspired) ── */
 .plant-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
 .plant-ring-wrap{position:relative;width:110px;height:110px;margin:10px auto 6px}
@@ -911,6 +965,13 @@ body{
         <div class="ss-card"><div class="ss-val">47</div><div class="ss-key">Задач</div></div>
         <div class="ss-card"><div class="ss-val">+40%</div><div class="ss-key">Рост</div></div>
       </div>
+      <div class="top3-card" id="top3Card" style="display:none">
+        <div class="top3-header">
+          <div class="top3-title">⭐ Топ-3 сегодня</div>
+          <div class="top3-energy-badge" id="top3EnergyBadge"></div>
+        </div>
+        <div id="top3List"><div class="top3-empty">Пройди утренний ритуал чтобы выбрать задачи дня</div></div>
+      </div>
       <div class="daily-goal-card">
         <div class="dg-header">
           <span class="dg-title">Цель дня</span>
@@ -1183,10 +1244,114 @@ body{
       <button class="star-btn" onclick="setReflStar(4)">⭐</button>
       <button class="star-btn" onclick="setReflStar(5)">⭐</button>
     </div>
-    <textarea class="modal-input" id="reflectionInput" rows="2" placeholder="Что удалось? Что отвлекло? (необязательно)"></textarea>
+    <div class="refl-task-row" id="reflTaskRow" style="display:none">
+      <div class="refl-task-label">Задача в этой сессии</div>
+      <div class="refl-task-name" id="reflTaskName"></div>
+      <div class="refl-task-btns">
+        <button class="rtb" id="rtbDone"     onclick="setTaskOutcome('done')">✓ Выполнено</button>
+        <button class="rtb" id="rtbPartial"  onclick="setTaskOutcome('partial')">≈ Частично</button>
+        <button class="rtb" id="rtbContinue" onclick="setTaskOutcome('continue')">→ Продолжу</button>
+      </div>
+    </div>
+    <textarea class="modal-input" id="reflectionInput" rows="2" placeholder="Что удалось? Что отвлекло? (необязательно)" style="margin-top:12px"></textarea>
     <div class="modal-btns">
       <button class="modal-btn secondary" onclick="submitReflection()">Пропустить</button>
       <button class="modal-btn primary" onclick="submitReflection(true)">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Daily Forge Ritual Modal -->
+<div class="ritual-overlay" id="ritualModal">
+  <div class="ritual-box">
+    <div class="ritual-header">
+      <div class="ritual-brand">⚒ Утренний Forge</div>
+      <div class="ritual-dots">
+        <div class="ritual-dot active" id="rdot0"></div>
+        <div class="ritual-dot" id="rdot1"></div>
+        <div class="ritual-dot" id="rdot2"></div>
+        <div class="ritual-dot" id="rdot3"></div>
+        <div class="ritual-dot" id="rdot4"></div>
+      </div>
+    </div>
+
+    <!-- Step 1: Yesterday review -->
+    <div class="ritual-step active" id="rstep0">
+      <div class="ritual-step-title">Итоги вчерашнего дня</div>
+      <div class="ritual-step-sub">Посмотри что удалось сделать</div>
+      <div class="ritual-ystats">
+        <div class="rys-card"><div class="rys-val" id="rySessions">—</div><div class="rys-key">Сессий</div></div>
+        <div class="rys-card"><div class="rys-val" id="ryFocus">—</div><div class="rys-key">Фокус</div></div>
+        <div class="rys-card"><div class="rys-val" id="ryTasks">—</div><div class="rys-key">Задач</div></div>
+      </div>
+      <textarea class="modal-input" id="ryNote" rows="2" placeholder="Что удалось вчера? (необязательно)"></textarea>
+      <div class="ritual-nav">
+        <button class="modal-btn secondary" onclick="closeRitual()">Пропустить ритуал</button>
+        <button class="modal-btn primary" onclick="ritualNext()">Далее →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Top 3 tasks -->
+    <div class="ritual-step" id="rstep1">
+      <div class="ritual-step-title">Топ-3 задачи на сегодня</div>
+      <div class="ritual-step-sub">Выбери до 3 задач — они появятся в панели фокуса</div>
+      <div class="ritual-task-list" id="ritualTaskList"></div>
+      <div style="font-size:11px;color:var(--muted);text-align:center" id="ritualTaskCount">Выбрано: 0 / 3</div>
+      <div class="ritual-nav">
+        <button class="modal-btn secondary" onclick="ritualPrev()">← Назад</button>
+        <button class="modal-btn primary" onclick="ritualNext()">Далее →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Energy level -->
+    <div class="ritual-step" id="rstep2">
+      <div class="ritual-step-title">Уровень энергии</div>
+      <div class="ritual-step-sub">Как ты себя чувствуешь сегодня?</div>
+      <div class="ritual-energy-row">
+        <button class="ritual-energy-btn" id="re0" onclick="setRitualEnergy(0,'😴 Низкая')">😴<small>Низкая</small></button>
+        <button class="ritual-energy-btn" id="re1" onclick="setRitualEnergy(1,'😐 Нормально')">😐<small>Нормально</small></button>
+        <button class="ritual-energy-btn" id="re2" onclick="setRitualEnergy(2,'⚡ Хорошо')">⚡<small>Хорошо</small></button>
+        <button class="ritual-energy-btn" id="re3" onclick="setRitualEnergy(3,'🔥 Отлично')">🔥<small>Отлично</small></button>
+        <button class="ritual-energy-btn" id="re4" onclick="setRitualEnergy(4,'🚀 Пик')">🚀<small>Пик!</small></button>
+      </div>
+      <div class="ritual-nav">
+        <button class="modal-btn secondary" onclick="ritualPrev()">← Назад</button>
+        <button class="modal-btn primary" onclick="ritualNext()">Далее →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Time budget -->
+    <div class="ritual-step" id="rstep3">
+      <div class="ritual-step-title">Бюджет времени</div>
+      <div class="ritual-step-sub">Сколько часов фокусированной работы ты планируешь сегодня?</div>
+      <div class="ritual-time-row">
+        <button class="ritual-time-btn" id="rt0" onclick="setRitualTime(2)">2ч</button>
+        <button class="ritual-time-btn" id="rt1" onclick="setRitualTime(4)">4ч</button>
+        <button class="ritual-time-btn" id="rt2" onclick="setRitualTime(6)">6ч</button>
+        <button class="ritual-time-btn" id="rt3" onclick="setRitualTime(8)">8ч+</button>
+      </div>
+      <div class="ritual-nav">
+        <button class="modal-btn secondary" onclick="ritualPrev()">← Назад</button>
+        <button class="modal-btn primary" onclick="ritualNext()">Далее →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Daily intention -->
+    <div class="ritual-step" id="rstep4">
+      <div class="ritual-xp-banner">
+        <span style="font-size:24px">⚡</span>
+        <div>
+          <div style="font-weight:700;font-size:13px">+100 XP за завершение ритуала!</div>
+          <div style="font-size:11px;color:var(--muted)">Ежедневный ритуал = мощный старт дня</div>
+        </div>
+      </div>
+      <div class="ritual-step-title">Намерение дня</div>
+      <div class="ritual-step-sub">Одна фраза — чего ты хочешь достичь сегодня?</div>
+      <textarea class="modal-input" id="ritualIntention" rows="2" placeholder="Например: завершить прототип и отправить клиенту..."></textarea>
+      <div class="ritual-nav">
+        <button class="modal-btn secondary" onclick="ritualPrev()">← Назад</button>
+        <button class="modal-btn primary" onclick="completeRitual()">🚀 Начать день!</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1347,6 +1512,8 @@ onAuthStateChanged(auth, async user => {
   } catch(e) { console.warn('Firestore profile error:', e) }
   initTasks(); initHabits(); loadStats(); loadSettings()
   updateDailyGoal(); calcFocusScore(); requestNotifPerm(); updatePomoCycle(); loadXP()
+  // Show Forge ritual after a short delay (let UI settle first)
+  setTimeout(showRitualIfNeeded, 1500)
 })
 
 window.logout = async () => { await signOut(auth); window.location.href = 'index.html' }
@@ -1466,12 +1633,12 @@ window.toggleTimer = function(skipIntention) {
           pendingXP = calcXPForSession(MODES[curMode].mins, getSelectedTaskPriority())
           reflSelectedStars = 0
           document.querySelectorAll('.star-btn').forEach(b=>b.classList.remove('active'))
-          document.getElementById('reflectionInput').value = ''
           // Show distraction count in reflection sub text
           const reflSub = document.querySelector('#reflectionModal .modal-sub')
           if(reflSub) reflSub.textContent = distractionCount > 0
             ? `Сессия завершена! Ты отвлёкся ${distractionCount} раз. Насколько была продуктивной?`
             : 'Сессия завершена! Насколько продуктивной она была?'
+          prepareReflectionModal()
           document.getElementById('reflectionModal').classList.add('show')
         } else {
           showToast('Перерыв закончен! ⚡', 'Готов к следующей фокус-сессии?')
@@ -1797,6 +1964,185 @@ window.addHabit = async function() {
   document.getElementById('habitInput').value = ''
 }
 
+// ════════ DAILY FORGE RITUAL ════════
+let ritualStep = 0
+let ritualData = { energy: null, timeBudget: null, top3: [], intention: '', yesterNote: '' }
+
+async function showRitualIfNeeded() {
+  if(!currentUser) return
+  const today = new Date().toISOString().split('T')[0]
+  const hour  = new Date().getHours()
+  if(hour >= 18) return // Don't show after 6pm
+  try {
+    const snap = await getDoc(doc(db,'users',currentUser.uid,'forge',today))
+    if(snap.exists()) { loadForgeDay(snap.data()); return } // Already done today
+    // Load yesterday stats
+    await loadYesterdayStats()
+    // Load tasks for top-3 selection
+    await loadRitualTasks()
+    // Show ritual
+    ritualStep = 0
+    ritualData = { energy: null, timeBudget: null, top3: [], intention: '', yesterNote: '' }
+    setRitualStep(0)
+    document.getElementById('ritualModal').classList.add('show')
+  } catch(e) { console.warn('Ritual check error:', e) }
+}
+
+async function loadYesterdayStats() {
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1); yesterday.setHours(0,0,0,0)
+  const yEnd = new Date(yesterday); yEnd.setHours(23,59,59,999)
+  try {
+    const snap = await getDocs(query(
+      collection(db,'users',currentUser.uid,'sessions'),
+      where('completedAt','>=',Timestamp.fromDate(yesterday)),
+      where('completedAt','<=',Timestamp.fromDate(yEnd)),
+      where('type','==','focus')
+    ))
+    const sessions = snap.docs.map(d=>d.data())
+    const mins = sessions.reduce((s,d)=>s+(d.duration||0),0)
+    document.getElementById('rySessions').textContent = sessions.length
+    document.getElementById('ryFocus').textContent = mins>=60 ? Math.floor(mins/60)+'ч'+mins%60+'м' : mins+'м'
+  } catch(e) {}
+  try {
+    const tSnap = await getDocs(collection(db,'users',currentUser.uid,'tasks'))
+    const done = tSnap.docs.filter(d=>d.data().done).length
+    document.getElementById('ryTasks').textContent = done
+  } catch(e) {}
+}
+
+async function loadRitualTasks() {
+  try {
+    const snap = await getDocs(query(
+      collection(db,'users',currentUser.uid,'tasks'),
+      where('done','==',false),
+      orderBy('createdAt','asc')
+    ))
+    const tasks = snap.docs.map(d=>({id:d.id,...d.data()}))
+    const prioOrder = {high:0, mid:1, low:2}
+    const prioEmoji = {high:'🔴', mid:'🟡', low:'🟢'}
+    tasks.sort((a,b)=>(prioOrder[a.priority]||1)-(prioOrder[b.priority]||1))
+    const list = document.getElementById('ritualTaskList')
+    if(list) list.innerHTML = tasks.length
+      ? tasks.map(t=>`
+        <div class="ritual-task-item" id="rti_${t.id}" onclick="toggleRitualTask('${t.id}','${(t.name||'').replace(/'/g,"\\'")}')">
+          <div class="ritual-cb" id="rcb_${t.id}"></div>
+          <span>${prioEmoji[t.priority]||'⚪'} ${t.name}</span>
+        </div>`).join('')
+      : '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Нет активных задач. Добавь задачи в разделе Задачи!</div>'
+  } catch(e) {}
+}
+
+window.toggleRitualTask = function(id, name) {
+  const idx = ritualData.top3.findIndex(t=>t.id===id)
+  if(idx>=0) {
+    ritualData.top3.splice(idx,1)
+    document.getElementById('rti_'+id)?.classList.remove('selected')
+    document.getElementById('rcb_'+id).textContent = ''
+  } else {
+    if(ritualData.top3.length >= 3) { showToast('Максимум 3 задачи','Убери одну чтобы добавить другую'); return }
+    ritualData.top3.push({id, name})
+    document.getElementById('rti_'+id)?.classList.add('selected')
+    document.getElementById('rcb_'+id).textContent = '✓'
+  }
+  const count = document.getElementById('ritualTaskCount')
+  if(count) count.textContent = `Выбрано: ${ritualData.top3.length} / 3`
+}
+window.setRitualEnergy = function(level, label) {
+  ritualData.energy = {level, label}
+  document.querySelectorAll('.ritual-energy-btn').forEach((b,i)=>b.classList.toggle('active', i===level))
+}
+window.setRitualTime = function(hours) {
+  ritualData.timeBudget = hours
+  document.querySelectorAll('.ritual-time-btn').forEach(b=>b.classList.toggle('active', b.textContent.startsWith(hours)))
+}
+
+function setRitualStep(n) {
+  ritualStep = n
+  document.querySelectorAll('.ritual-step').forEach((s,i)=>s.classList.toggle('active', i===n))
+  document.querySelectorAll('.ritual-dot').forEach((d,i)=>{
+    d.classList.toggle('active', i===n)
+    d.classList.toggle('done', i<n)
+  })
+}
+window.ritualNext = function() {
+  if(ritualStep === 0) ritualData.yesterNote = document.getElementById('ryNote').value
+  if(ritualStep === 4) { completeRitual(); return }
+  setRitualStep(Math.min(4, ritualStep+1))
+}
+window.ritualPrev = function() { setRitualStep(Math.max(0, ritualStep-1)) }
+window.closeRitual = function() { document.getElementById('ritualModal').classList.remove('show') }
+
+window.completeRitual = async function() {
+  ritualData.intention = document.getElementById('ritualIntention').value.trim()
+  const today = new Date().toISOString().split('T')[0]
+  document.getElementById('ritualModal').classList.remove('show')
+  try {
+    await setDoc(doc(db,'users',currentUser.uid,'forge',today), {
+      ...ritualData, completedAt: serverTimestamp()
+    })
+  } catch(e) {}
+  await awardXP(100)
+  showToast('⚒ Forge активирован! +100 XP', ritualData.intention || 'Отличный старт дня!')
+  loadForgeDay(ritualData)
+}
+
+function loadForgeDay(data) {
+  // Show Top-3 widget
+  const card = document.getElementById('top3Card')
+  const list  = document.getElementById('top3List')
+  const badge = document.getElementById('top3EnergyBadge')
+  if(!card || !list) return
+  card.style.display = ''
+  if(data.energy?.label) badge.textContent = data.energy.label
+  if(data.top3?.length) {
+    list.innerHTML = data.top3.map((t,i) => `
+      <div class="top3-item" id="t3_${t.id}" onclick="toggleTop3('${t.id}')">
+        <div class="top3-cb" id="t3cb_${t.id}"></div>
+        <span class="top3-text">${i+1}. ${t.name}</span>
+      </div>`).join('')
+  } else {
+    list.innerHTML = '<div class="top3-empty">Задачи не выбраны</div>'
+  }
+  // Set daily intention as timer subtitle if present
+  if(data.intention) currentIntention = data.intention
+}
+
+window.toggleTop3 = function(id) {
+  const item = document.getElementById('t3_'+id)
+  const cb   = document.getElementById('t3cb_'+id)
+  if(!item) return
+  item.classList.toggle('t3done')
+  cb.textContent = item.classList.contains('t3done') ? '✓' : ''
+}
+
+// ════════ TASK OUTCOME IN REFLECTION ════════
+let pendingTaskOutcome = null
+
+window.setTaskOutcome = function(outcome) {
+  pendingTaskOutcome = outcome
+  document.querySelectorAll('.rtb').forEach(b=>b.classList.remove('active'))
+  const map = {done:'rtbDone', partial:'rtbPartial', continue:'rtbContinue'}
+  document.getElementById(map[outcome])?.classList.add('active')
+}
+
+// Show task name in reflection modal (called before showing modal)
+function prepareReflectionModal() {
+  pendingTaskOutcome = null
+  const sel = document.getElementById('ctSelect')
+  const taskName = sel?.options[sel.selectedIndex]?.text
+  const reflRow  = document.getElementById('reflTaskRow')
+  const reflName = document.getElementById('reflTaskName')
+  // Only show if a real task is selected (not placeholder)
+  if(taskName && !taskName.includes('Дизайн новой фичи') && !taskName.includes('Все задачи выполнены')) {
+    if(reflRow)  reflRow.style.display = ''
+    if(reflName) reflName.textContent  = taskName.replace(/^\[.*?\]\s*/, '')
+    document.querySelectorAll('.rtb').forEach(b=>b.classList.remove('active'))
+  } else {
+    if(reflRow) reflRow.style.display = 'none'
+  }
+  document.getElementById('reflectionInput').value = ''
+}
+
 // ════════ FOCUS TREE (Forest-inspired) ════════
 const PLANT_STAGES = [
   {threshold:0,    emoji:'🌰', msg:'Начни сессию, чтобы вырастить дерево'},
@@ -2081,25 +2427,41 @@ window.setReflStar = function(n) {
 }
 window.submitReflection = async function(save) {
   document.getElementById('reflectionModal').classList.remove('show')
+  // Task outcome XP bonus
+  let xpBonus = 0
+  if(save && pendingTaskOutcome === 'done')    xpBonus = Math.round(pendingXP * 0.5)
+  if(save && pendingTaskOutcome === 'partial') xpBonus = Math.round(pendingXP * 0.2)
+  const totalXpGrant = pendingXP + xpBonus
+
   if(currentUser) {
     try {
       const note = document.getElementById('reflectionInput').value.trim()
       await addDoc(collection(db,'users',currentUser.uid,'sessions'), {
         type: lastSessionType, duration: pendingSessionDuration,
-        completedAt: serverTimestamp(), xp: pendingXP,
+        completedAt: serverTimestamp(), xp: totalXpGrant,
         quality: (save && reflSelectedStars) || null,
         note: (save && note) || null,
         intention: currentIntention || null,
-        distractions: distractionCount || 0
+        distractions: distractionCount || 0,
+        taskOutcome: (save && pendingTaskOutcome) || null
       })
+      // Mark task done in Firestore if outcome = done
+      if(save && pendingTaskOutcome === 'done') {
+        const sel = document.getElementById('ctSelect')
+        const taskId = sel?.value
+        if(taskId && taskId.length > 5) {
+          await updateDoc(doc(db,'users',currentUser.uid,'tasks',taskId), {done:true}).catch(()=>{})
+        }
+      }
     } catch(e) {}
   }
   distractionCount = 0
   currentIntention = ''
   const stars = save ? reflSelectedStars : 0
   const msgs = ['','Непродуктивно, но ты начал 👊','Сойдёт, продолжай 💪','Хорошая сессия! 🎯','Отличная работа! 🔥','Идеальная концентрация! 🚀']
-  showToast('Сессия завершена! 🎯', stars>0 ? msgs[stars] : `${pendingSessionDuration} мин фокуса. Сделай перерыв!`)
-  await awardXP(pendingXP)
+  const outcomeBonus = xpBonus > 0 ? ` +${xpBonus} XP бонус за задачу!` : ''
+  showToast('Сессия завершена! 🎯', (stars>0 ? msgs[stars] : `${pendingSessionDuration}м фокуса. Перерыв!`) + outcomeBonus)
+  await awardXP(totalXpGrant)
   loadStats(); updateDailyGoal(); calcFocusScore()
 }
 
