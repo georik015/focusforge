@@ -515,7 +515,28 @@ body{
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- ══ AUTH LOADING SCREEN ══ -->
+<div id="authLoader" style="
+  position:fixed;inset:0;z-index:9999;
+  background:#05030e;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+">
+  <div style="
+    font-size:22px;font-weight:900;
+    background:linear-gradient(120deg,#c4b5fd,#67e8f9);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  ">FocusForge</div>
+  <div style="
+    width:36px;height:36px;border-radius:50%;
+    border:3px solid rgba(124,58,237,.2);
+    border-top-color:#7c3aed;
+    animation:spin .7s linear infinite;
+  "></div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>
+
+<div class="app" id="appShell" style="display:none">
 
 <!-- ══ TOPBAR ══ -->
 <header class="topbar">
@@ -789,7 +810,21 @@ let currentUser = null, unsubTasks = null, unsubHabits = null
 
 // ── Auth ──
 onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = 'index.html'; return }
+  const loader = document.getElementById('authLoader')
+  const shell  = document.getElementById('appShell')
+
+  if (!user) {
+    // Небольшая задержка перед редиректом — ждём подтверждения от Firebase
+    setTimeout(() => {
+      if (!auth.currentUser) window.location.href = 'index.html'
+    }, 1500)
+    return
+  }
+
+  // Пользователь авторизован — скрываем лоадер, показываем приложение
+  loader.style.display = 'none'
+  shell.style.display = ''
+
   currentUser = user
   const name = user.displayName || user.email.split('@')[0]
   document.getElementById('topGreeting').innerHTML = `Добро пожаловать, <strong>${name.split(' ')[0]} 👋</strong>`
