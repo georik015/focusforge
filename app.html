@@ -861,12 +861,19 @@ window.setMode = function(idx, el) {
 }
 
 window.toggleTimer = function() {
-  timerRunning = !timerRunning
   if(timerRunning) {
-    document.getElementById('iconPlay').style.display = 'none'
-    document.getElementById('iconPause').style.display = ''
-    document.getElementById('startLabel').textContent = 'Пауза'
-    timerInterval = setInterval(async () => {
+    clearInterval(timerInterval); timerRunning = false
+    document.getElementById('iconPlay').style.display = ''
+    document.getElementById('iconPause').style.display = 'none'
+    document.getElementById('startLabel').textContent = 'Старт'
+    return
+  }
+  timerRunning = true
+  clearInterval(timerInterval)
+  document.getElementById('iconPlay').style.display = 'none'
+  document.getElementById('iconPause').style.display = ''
+  document.getElementById('startLabel').textContent = 'Пауза'
+  timerInterval = setInterval(async () => {
       if(secs > 0) { secs--; updateTimer() }
       else {
         clearInterval(timerInterval); timerRunning = false
@@ -881,12 +888,6 @@ window.toggleTimer = function() {
         }
       }
     }, 1000)
-  } else {
-    clearInterval(timerInterval)
-    document.getElementById('iconPlay').style.display = ''
-    document.getElementById('iconPause').style.display = 'none'
-    document.getElementById('startLabel').textContent = 'Старт'
-  }
 }
 
 window.resetTimer = function() {
@@ -1043,6 +1044,9 @@ function renderHabits() {
           <div class="habit-mini-grid">
             ${last7.map(v=>`<div class="hm-cell ${v?'h3':''}"></div>`).join('')}
           </div>
+          <button onclick="deleteHabit('${h.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:6px;transition:color .2s;flex-shrink:0" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--muted)'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
         </div>`
       }).join('')
     : '<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px">Нет привычек. Добавь первую!</div>'
@@ -1072,6 +1076,10 @@ window.toggleHabit = async function(id) {
     completedDates: hasDone ? dates.filter(d=>d!==today) : [...dates, today],
     streak: hasDone ? Math.max(0,(h.streak||0)-1) : (h.streak||0)+1
   })
+}
+window.deleteHabit = async function(id) {
+  if(!currentUser) return
+  await deleteDoc(doc(db,'users',currentUser.uid,'habits',id))
 }
 window.addHabit = async function() {
   const name = document.getElementById('habitInput').value.trim()
