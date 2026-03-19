@@ -516,24 +516,69 @@ body{
 </head>
 <body>
 
-<!-- ══ AUTH LOADING SCREEN ══ -->
-<div id="authLoader" style="
+<!-- ══ AUTH SCREEN ══ -->
+<div id="authScreen" style="
   position:fixed;inset:0;z-index:9999;
-  background:#05030e;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  background:linear-gradient(135deg,#05030e 0%,#0d0520 50%,#050318 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px;
 ">
-  <div style="
-    font-size:22px;font-weight:900;
-    background:linear-gradient(120deg,#c4b5fd,#67e8f9);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  ">FocusForge</div>
-  <div style="
-    width:36px;height:36px;border-radius:50%;
-    border:3px solid rgba(124,58,237,.2);
-    border-top-color:#7c3aed;
-    animation:spin .7s linear infinite;
-  "></div>
-  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+  <style>
+    .as-box{width:100%;max-width:400px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px;backdrop-filter:blur(20px)}
+    .as-logo{font-size:20px;font-weight:900;background:linear-gradient(120deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:24px;text-align:center}
+    .as-tabs{display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:3px;margin-bottom:24px}
+    .as-tab{flex:1;padding:9px;border:none;background:transparent;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .2s}
+    .as-tab.active{background:rgba(124,58,237,.3);color:#c4b5fd}
+    .as-panel{display:none}.as-panel.active{display:block}
+    .as-field{margin-bottom:14px}
+    .as-field label{display:block;font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:6px}
+    .as-field input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px 14px;color:#f1f5f9;font-size:14px;outline:none;transition:border-color .2s}
+    .as-field input:focus{border-color:rgba(124,58,237,.5)}
+    .as-google{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#f1f5f9;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;transition:all .2s}
+    .as-google:hover{background:rgba(255,255,255,.1)}
+    .as-divider{text-align:center;color:rgba(255,255,255,.3);font-size:12px;margin:14px 0;position:relative}
+    .as-divider::before,.as-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:rgba(255,255,255,.1)}
+    .as-divider::before{left:0}.as-divider::after{right:0}
+    .as-submit{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;transition:all .2s}
+    .as-submit:hover{opacity:.9;transform:translateY(-1px)}
+    .as-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .as-err{color:#f87171;font-size:12px;margin-top:10px;text-align:center;min-height:18px}
+    .as-spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .6s linear infinite;display:inline-block}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+  <div class="as-box">
+    <div class="as-logo">FocusForge</div>
+    <div class="as-tabs">
+      <button class="as-tab active" id="asTabReg" onclick="asSwitchTab('reg')">Регистрация</button>
+      <button class="as-tab" id="asTabLogin" onclick="asSwitchTab('login')">Войти</button>
+    </div>
+
+    <!-- Register -->
+    <div class="as-panel active" id="asPanelReg">
+      <button class="as-google" id="asGoogleReg" onclick="asGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/></svg>
+        Продолжить с Google
+      </button>
+      <div class="as-divider">или через email</div>
+      <div class="as-field"><label>Имя</label><input type="text" id="asRegName" placeholder="Как тебя зовут?"/></div>
+      <div class="as-field"><label>Email</label><input type="email" id="asRegEmail" placeholder="you@example.com"/></div>
+      <div class="as-field"><label>Пароль</label><input type="password" id="asRegPass" placeholder="Минимум 6 символов"/></div>
+      <button class="as-submit" id="asRegBtn" onclick="asRegister()">Создать аккаунт</button>
+      <div class="as-err" id="asRegErr"></div>
+    </div>
+
+    <!-- Login -->
+    <div class="as-panel" id="asPanelLogin">
+      <button class="as-google" id="asGoogleLogin" onclick="asGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/></svg>
+        Войти через Google
+      </button>
+      <div class="as-divider">или через email</div>
+      <div class="as-field"><label>Email</label><input type="email" id="asLoginEmail" placeholder="you@example.com"/></div>
+      <div class="as-field"><label>Пароль</label><input type="password" id="asLoginPass" placeholder="Ваш пароль"/></div>
+      <button class="as-submit" id="asLoginBtn" onclick="asLogin()">Войти</button>
+      <div class="as-err" id="asLoginErr"></div>
+    </div>
+  </div>
 </div>
 
 <div class="app" id="appShell" style="display:none">
@@ -788,7 +833,10 @@ body{
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
-import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
+import { getAuth, onAuthStateChanged, signOut,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  signInWithPopup, GoogleAuthProvider, updateProfile
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
 import {
   getFirestore, doc, collection, addDoc, updateDoc, deleteDoc,
   getDoc, setDoc, onSnapshot, query, orderBy, getDocs, where, Timestamp, serverTimestamp
@@ -808,22 +856,81 @@ const db = getFirestore(fbApp)
 
 let currentUser = null, unsubTasks = null, unsubHabits = null
 
-// ── Auth ──
+// ── Auth screen helpers ──
+const gProvider = new GoogleAuthProvider()
+const errMsgs = {
+  'auth/email-already-in-use':'Этот email уже зарегистрирован',
+  'auth/invalid-email':'Неверный формат email',
+  'auth/wrong-password':'Неверный пароль',
+  'auth/invalid-credential':'Неверный email или пароль',
+  'auth/user-not-found':'Пользователь не найден',
+  'auth/too-many-requests':'Слишком много попыток. Попробуй позже',
+  'auth/weak-password':'Пароль слишком простой'
+}
+function asShowErr(id, msg){ document.getElementById(id).textContent = msg }
+function asSetLoading(btnId, loading){
+  const b = document.getElementById(btnId)
+  b.disabled = loading
+  if(loading) b.innerHTML = '<div class="as-spin"></div>'
+  else b.textContent = btnId==='asRegBtn' ? 'Создать аккаунт' : 'Войти'
+}
+window.asSwitchTab = function(tab){
+  document.getElementById('asTabReg').classList.toggle('active', tab==='reg')
+  document.getElementById('asTabLogin').classList.toggle('active', tab==='login')
+  document.getElementById('asPanelReg').classList.toggle('active', tab==='reg')
+  document.getElementById('asPanelLogin').classList.toggle('active', tab==='login')
+  asShowErr('asRegErr',''); asShowErr('asLoginErr','')
+}
+window.asRegister = async function(){
+  const name  = document.getElementById('asRegName').value.trim()
+  const email = document.getElementById('asRegEmail').value.trim()
+  const pass  = document.getElementById('asRegPass').value
+  if(!name||!email||!pass){ asShowErr('asRegErr','Заполни все поля'); return }
+  if(pass.length < 6){ asShowErr('asRegErr','Пароль — минимум 6 символов'); return }
+  asSetLoading('asRegBtn', true); asShowErr('asRegErr','')
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass)
+    await updateProfile(cred.user, { displayName: name })
+  } catch(e) { asShowErr('asRegErr', errMsgs[e.code]||e.message); asSetLoading('asRegBtn',false) }
+}
+window.asLogin = async function(){
+  const email = document.getElementById('asLoginEmail').value.trim()
+  const pass  = document.getElementById('asLoginPass').value
+  if(!email||!pass){ asShowErr('asLoginErr','Заполни все поля'); return }
+  asSetLoading('asLoginBtn', true); asShowErr('asLoginErr','')
+  try {
+    await signInWithEmailAndPassword(auth, email, pass)
+  } catch(e) { asShowErr('asLoginErr', errMsgs[e.code]||e.message); asSetLoading('asLoginBtn',false) }
+}
+window.asGoogle = async function(){
+  const btnReg   = document.getElementById('asGoogleReg')
+  const btnLogin = document.getElementById('asGoogleLogin')
+  btnReg.disabled = btnLogin.disabled = true
+  try {
+    await signInWithPopup(auth, gProvider)
+  } catch(e) {
+    if(e.code !== 'auth/popup-closed-by-user'){
+      asShowErr('asRegErr', errMsgs[e.code]||'Ошибка Google входа')
+      asShowErr('asLoginErr', errMsgs[e.code]||'Ошибка Google входа')
+    }
+    btnReg.disabled = btnLogin.disabled = false
+  }
+}
+
+// ── Auth state ──
 onAuthStateChanged(auth, async user => {
-  const loader = document.getElementById('authLoader')
+  const screen = document.getElementById('authScreen')
   const shell  = document.getElementById('appShell')
 
   if (!user) {
-    // Небольшая задержка перед редиректом — ждём подтверждения от Firebase
-    setTimeout(() => {
-      if (!auth.currentUser) window.location.href = 'index.html'
-    }, 1500)
+    screen.style.display = 'flex'
+    shell.style.display  = 'none'
     return
   }
 
-  // Пользователь авторизован — скрываем лоадер, показываем приложение
-  loader.style.display = 'none'
-  shell.style.display = ''
+  // Авторизован — скрываем экран входа, показываем приложение
+  screen.style.display = 'none'
+  shell.style.display  = ''
 
   currentUser = user
   const name = user.displayName || user.email.split('@')[0]
@@ -834,11 +941,13 @@ onAuthStateChanged(auth, async user => {
   } else {
     av.textContent = name.slice(0,2).toUpperCase()
   }
-  const uRef = doc(db, 'users', user.uid)
-  const snap = await getDoc(uRef)
-  if (!snap.exists()) {
-    await setDoc(uRef, { name: user.displayName||name, email: user.email, photoURL: user.photoURL||null, createdAt: serverTimestamp() })
-  }
+  try {
+    const uRef = doc(db, 'users', user.uid)
+    const snap = await getDoc(uRef)
+    if (!snap.exists()) {
+      await setDoc(uRef, { name: user.displayName||name, email: user.email, photoURL: user.photoURL||null, createdAt: serverTimestamp() })
+    }
+  } catch(e) { console.warn('Firestore profile error:', e) }
   initTasks(); initHabits(); loadStats(); loadSettings()
 })
 
