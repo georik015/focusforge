@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LevelMesg — Структурная Система Проекта</title>
+  <style>
+    :root {
+      --bg: #0a0a12;
+      --surface: #12121e;
+      --surface2: #1a1a2e;
+      --border: #2a2a4a;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --accent3: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --done: #10b981;
+      --progress: #f59e0b;
+      --todo: #475569;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(124,58,237,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,58,237,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    .header {
+      text-align: center;
+      padding: 60px 0 40px;
+      position: relative;
+    }
+    .header-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, rgba(124,58,237,.2), rgba(6,182,212,.2));
+      border: 1px solid rgba(124,58,237,.4);
+      border-radius: 100px;
+      padding: 6px 20px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, #06b6d4, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .header p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .version-tag {
+      display: inline-block;
+      margin-top: 16px;
+      background: rgba(16,185,129,.15);
+      border: 1px solid rgba(16,185,129,.3);
+      color: var(--accent3);
+      padding: 4px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ── SECTION TITLES ── */
+    .section { margin-bottom: 48px; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-title .icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .icon-purple { background: rgba(124,58,237,.2); }
+    .icon-cyan   { background: rgba(6,182,212,.2); }
+    .icon-green  { background: rgba(16,185,129,.2); }
+    .icon-amber  { background: rgba(245,158,11,.2); }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: rgba(124,58,237,.4); }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── VISION CARD ── */
+    .vision-card {
+      background: linear-gradient(135deg, rgba(124,58,237,.1), rgba(6,182,212,.05));
+      border: 1px solid rgba(124,58,237,.3);
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .vision-card h2 { font-size: 1.6rem; margin-bottom: 16px; color: #a78bfa; }
+    .vision-card p  { color: var(--muted); line-height: 1.8; font-size: 1rem; }
+
+    /* ── CURRENT PHASE ── */
+    .phase-indicator {
+      background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(245,158,11,.05));
+      border: 2px solid rgba(245,158,11,.5);
+      border-radius: 16px;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 48px;
+    }
+    .phase-number {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #000;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(245,158,11,.4);
+    }
+    .phase-info h3 { font-size: 1.2rem; color: #fbbf24; margin-bottom: 4px; }
+    .phase-info p  { color: var(--muted); font-size: .95rem; }
+    .phase-status {
+      margin-left: auto;
+      background: rgba(245,158,11,.2);
+      border: 1px solid rgba(245,158,11,.4);
+      color: #fbbf24;
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* ── STEPS TABLE ── */
+    .table-wrapper { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    th {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    td {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      font-size: .9rem;
+      vertical-align: top;
+    }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    /* ── STATUS BADGES ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    .badge-done    { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+    .badge-done::before    { background: #34d399; }
+    .badge-active  { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.3); animation: pulse 2s infinite; }
+    .badge-active::before  { background: #fbbf24; }
+    .badge-todo    { background: rgba(71,85,105,.15); color: #94a3b8; border: 1px solid rgba(71,85,105,.3); }
+    .badge-todo::before    { background: #475569; }
+    .badge-blocked { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+    .badge-blocked::before { background: #f87171; }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.3); }
+      50%       { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+    }
+
+    /* ── PRIORITY BADGES ── */
+    .priority-critical { color: #f87171; font-weight: 700; font-size: 12px; }
+    .priority-high     { color: #fbbf24; font-weight: 600; font-size: 12px; }
+    .priority-medium   { color: #60a5fa; font-weight: 600; font-size: 12px; }
+    .priority-low      { color: #94a3b8; font-size: 12px; }
+
+    /* ── FEATURES DOUBLE TABLE ── */
+    .feature-module {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .feature-module-header {
+      background: var(--surface2);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: .95rem;
+    }
+    .feature-module-header .module-icon { font-size: 1.2rem; }
+
+    /* ── TECH STACK ── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .tech-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tech-icon { font-size: 1.4rem; }
+    .tech-name { font-weight: 600; font-size: .9rem; }
+    .tech-desc { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+
+    /* ── PROGRESS BARS ── */
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border-radius: 100px;
+      height: 6px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .5s ease;
+    }
+
+    /* ── MILESTONE TIMELINE ── */
+    .timeline { position: relative; padding-left: 32px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -26px; top: 20px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      background: var(--bg);
+    }
+    .timeline-item.done::before  { background: var(--done); border-color: var(--done); }
+    .timeline-item.active::before { background: var(--warn); border-color: var(--warn); box-shadow: 0 0 8px rgba(245,158,11,.5); }
+    .timeline-label { font-weight: 700; font-size: .95rem; margin-bottom: 6px; }
+    .timeline-desc  { color: var(--muted); font-size: .85rem; line-height: 1.5; }
+
+    /* ── LAST UPDATED ── */
+    .last-updated {
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: .85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+    .last-updated span { color: var(--accent2); }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-badge">Structural System v1.0</div>
+    <h1>LevelMesg</h1>
+    <p>Приложение для прокачки себя через геймификацию реального развития — биологического, психического, социального, управленческого и духовного.</p>
+    <div class="version-tag">Фаза: Шаг 2-3 — Усиление идеи + Разработка MVP</div>
+  </div>
+
+  <!-- VISION -->
+  <div class="vision-card">
+    <h2>🎯 Конечная Цель</h2>
+    <p>
+      Создать кроссплатформенное приложение (iOS / Android / Windows / macOS / Web),
+      где пользователь прокачивает реального себя через своего 2D/3D аватара.
+      Каждое реальное действие — тренировка, чтение, медитация, коммуникация —
+      отражается на состоянии аватара. Итог: миллионы пользователей,
+      которые реально развиваются, вовлечены и платят за Premium.
+    </p>
+  </div>
+
+  <!-- CURRENT PHASE -->
+  <div class="phase-indicator">
+    <div class="phase-number">2</div>
+    <div class="phase-info">
+      <h3>Шаг 2-3 — Усиление идеи + Написание кода MVP</h3>
+      <p>Финализация архитектуры, дизайн-решения, написание levelmesg.html</p>
+    </div>
+    <div class="phase-status">🔄 В ПРОЦЕССЕ</div>
+  </div>
+
+  <!-- STEPS PROGRESS TABLE -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-purple">📋</div>
+      Прогресс по Шагам (Step Tracker)
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Шаг</th>
+            <th>Описание</th>
+            <th>Статус</th>
+            <th>Приоритет</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>Уточнение</td>
+            <td>Ответы на ключевые вопросы, финализация идеи</td>
+            <td><span class="badge badge-done">Завершён</span></td>
+            <td><span class="priority-critical">КРИТИЧНО</span></td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Усиление идеи</td>
+            <td>Анализ конкурентов, слабые места, улучшения</td>
+            <td><span class="badge badge-done">Завершён</span></td>
+            <td><span class="priority-high">ВЫСОКИЙ</span></td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>UX/UI Концепция</td>
+            <td>3 концепции дизайна, согласование</td>
+            <td><span class="badge badge-done">Завершён</span></td>
+            <td><span class="priority-high">ВЫСОКИЙ</span></td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Продуктовая Логика</td>
+            <td>Регистрация, аватар, механики, магазин, экономика</td>
+            <td><span class="badge badge-active">В процессе</span></td>
+            <td><span class="priority-high">ВЫСОКИЙ</span></td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>Техническая Архитектура</td>
+            <td>Стек, БД, API, масштабируемость</td>
+            <td><span class="badge badge-todo">Ожидает</span></td>
+            <td><span class="priority-high">ВЫСОКИЙ</span></td>
+          </tr>
+          <tr>
+            <td><strong>6</strong></td>
+            <td>Безопасность</td>
+            <td>GDPR, шифрование, защита аккаунтов</td>
+            <td><span class="badge badge-todo">Ожидает</span></td>
+            <td><span class="priority-medium">СРЕДНИЙ</span></td>
+          </tr>
+          <tr>
+            <td><strong>7</strong></td>
+            <td>Система прокачки (глубокая)</td>
+            <td>5 уровней развития, взаимосвязи, механики</td>
+            <td><span class="badge badge-todo">Ожидает</span></td>
+            <td><span class="priority-high">ВЫСОКИЙ</span></td>
+          </tr>
+          <tr>
+            <td><strong>8</strong></td>
+            <td>План разработки</td>
+            <td>MVP → V1 → V2, приоритеты, оценка</td>
+            <td><span class="badge badge-todo">Ожидает</span></td>
+            <td><span class="priority-medium">СРЕДНИЙ</span></td>
+          </tr>
+          <tr>
+            <td><strong>9</strong></td>
+            <td>Написание кода (MVP)</td>
+            <td>levelmesg.html — полный программный продукт</td>
+            <td><span class="badge badge-todo">Ожидает</span></td>
+            <td><span class="priority-critical">КРИТИЧНО</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FEATURES DOUBLE TABLE -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-cyan">⚙️</div>
+      Двойная Таблица Функций — Финальный Результат vs Текущий Статус
+    </div>
+
+    <!-- MODULE 1: AUTH -->
+    <div class="feature-module">
+      <div class="feature-module-header">
+        <span class="module-icon">🔐</span> Модуль 1 — Авторизация &amp; Регистрация
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Функция</th>
+            <th>Финальный результат (цель)</th>
+            <th>Текущий статус</th>
+            <th>Этап</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Email/пароль регистрация</td>
+            <td>Полная форма с валидацией, подтверждение email</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>Google OAuth</td>
+            <td>Один клик, Firebase Auth</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>Вход по телефону (SMS OTP)</td>
+            <td>Twilio/Firebase Phone Auth</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>7-дневный free trial</td>
+            <td>Автоматический таймер с напоминаниями</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODULE 2: AVATAR -->
+    <div class="feature-module">
+      <div class="feature-module-header">
+        <span class="module-icon">🧑‍🎮</span> Модуль 2 — Создание Аватара
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Функция</th>
+            <th>Финальный результат (цель)</th>
+            <th>Текущий статус</th>
+            <th>Этап</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ввод параметров (рост/вес/возраст)</td>
+            <td>Форма с реальными ограничениями (возраст 10–110, вес 10–350 кг)</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>2D аватар на основе данных</td>
+            <td>Динамическое тело: худой/средний/крупный, цвет кожи, волосы</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>3D аватар (Three.js)</td>
+            <td>Полноценный 3D с вращением 360°</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V2</td>
+          </tr>
+          <tr>
+            <td>Интерактивные зоны тела</td>
+            <td>Клик на мышцу → показывает характеристику + анимацию</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODULE 3: MAIN SCREEN -->
+    <div class="feature-module">
+      <div class="feature-module-header">
+        <span class="module-icon">🏠</span> Модуль 3 — Главный Экран
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Функция</th>
+            <th>Финальный результат (цель)</th>
+            <th>Текущий статус</th>
+            <th>Этап</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Аватар по центру с состоянием</td>
+            <td>Отражает текущий уровень развития (поза, внешний вид)</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>Вращение аватара 360°</td>
+            <td>Свайп/перетаскивание для вращения</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>Система деградации</td>
+            <td>Если не тренируется — аватар слабеет, меняет позу, теряет XP</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>Быстрый старт тренировки</td>
+            <td>CTA кнопка → выбор навыка → начало прокачки</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODULE 4: LEVELING -->
+    <div class="feature-module">
+      <div class="feature-module-header">
+        <span class="module-icon">⚡</span> Модуль 4 — Система Прокачки (5 Уровней)
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Навык</th>
+            <th>Финальный результат (цель)</th>
+            <th>Текущий статус</th>
+            <th>Этап</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🧱 Биологический (физо)</td>
+            <td>Тренировки по группам мышц, уровни сложности, анимации упражнений</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>🧠 Когнитивный (чтение)</td>
+            <td>Трекер чтения, таймер, пересказ, сохранение заметок, избранное</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>😌 Эмоциональный</td>
+            <td>Медитации, дыхание, дневник эмоций</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>👥 Социальный</td>
+            <td>Задачи на коммуникацию, социальные вызовы</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>🎯 Управленческий</td>
+            <td>Тайм-менеджмент, финансовые задачи, лидерство</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V2</td>
+          </tr>
+          <tr>
+            <td>🧭 Духовный/Глубинный</td>
+            <td>Ценности, рефлексия, цели жизни</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V2</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODULE 5: ECONOMY -->
+    <div class="feature-module">
+      <div class="feature-module-header">
+        <span class="module-icon">💎</span> Модуль 5 — Экономика &amp; Магазин
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Функция</th>
+            <th>Финальный результат (цель)</th>
+            <th>Текущий статус</th>
+            <th>Этап</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Виртуальная валюта (Coins/XP)</td>
+            <td>Начисление за тренировки, стрики, достижения</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>Магазин одежды</td>
+            <td>Покупка скинов/аксессуаров за монеты</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>Система подписки</td>
+            <td>7 дней free → неделя/месяц, Stripe</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>Баланс экономики</td>
+            <td>Формула: сложность × время = монеты. Дефляция для удержания</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODULE 6: STATS -->
+    <div class="feature-module">
+      <div class="feature-module-header">
+        <span class="module-icon">📊</span> Модуль 6 — Статистика &amp; Прогресс
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Функция</th>
+            <th>Финальный результат (цель)</th>
+            <th>Текущий статус</th>
+            <th>Этап</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Паук-диаграмма навыков</td>
+            <td>Визуальный radar chart по 5 уровням прокачки</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>История тренировок</td>
+            <td>Лента активности с датами, временем, XP</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>MVP</td>
+          </tr>
+          <tr>
+            <td>Графики прогресса</td>
+            <td>Chart.js: рост навыков по времени</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+          <tr>
+            <td>Стрики и достижения</td>
+            <td>Бейджи, серии, рекорды</td>
+            <td><span class="badge badge-todo">Не начато</span></td>
+            <td>V1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-green">🛠️</div>
+      Технический Стек
+    </div>
+    <div class="tech-grid">
+      <div class="tech-item">
+        <span class="tech-icon">⚛️</span>
+        <div>
+          <div class="tech-name">React / React Native</div>
+          <div class="tech-desc">Web + Mobile единая кодовая база</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🟩</span>
+        <div>
+          <div class="tech-name">Node.js + Express</div>
+          <div class="tech-desc">Backend API сервер</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🔥</span>
+        <div>
+          <div class="tech-name">Firebase / Supabase</div>
+          <div class="tech-desc">БД + Auth + Realtime</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🎨</span>
+        <div>
+          <div class="tech-name">Framer Motion + Lottie</div>
+          <div class="tech-desc">Анимации и переходы</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🧊</span>
+        <div>
+          <div class="tech-name">Three.js</div>
+          <div class="tech-desc">3D аватар (V2)</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">💳</span>
+        <div>
+          <div class="tech-name">Stripe</div>
+          <div class="tech-desc">Подписка и платежи</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🖥️</span>
+        <div>
+          <div class="tech-name">Electron / Capacitor</div>
+          <div class="tech-desc">Windows + macOS desktop</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">📊</span>
+        <div>
+          <div class="tech-name">Chart.js / D3.js</div>
+          <div class="tech-desc">Визуализация статистики</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MVP ROADMAP TIMELINE -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-amber">🗺️</div>
+      Дорожная Карта (MVP → V1 → V2)
+    </div>
+    <div class="timeline">
+      <div class="timeline-item active">
+        <div class="timeline-label">🚀 MVP — Ядро продукта</div>
+        <div class="timeline-desc">
+          Авторизация Email/Google · Создание 2D аватара · Главный экран · Физическая тренировка (базовая) · Когнитивный модуль (чтение) · Паук-диаграмма · История прокачки
+        </div>
+        <div style="margin-top:10px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Прогресс MVP: 0%</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-label">⚡ V1 — Полный продукт</div>
+        <div class="timeline-desc">
+          SMS Auth · Деградация аватара · Все 5 уровней прокачки · Магазин + экономика · Подписка Stripe · Уведомления · Избранное
+        </div>
+        <div style="margin-top:10px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Прогресс V1: 0%</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-label">🌟 V2 — Флагман</div>
+        <div class="timeline-desc">
+          3D аватар Three.js · Unity-аватар для мобайл · Социальные механики (друзья, рейтинги) · Управленческий + духовный уровни · AI-тренер · Публикация App Store / Google Play
+        </div>
+        <div style="margin-top:10px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Прогресс V2: 0%</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTIONS AWAITING -->
+  <div class="section">
+    <div class="section-title">
+      <div class="icon icon-amber">❓</div>
+      Вопросы Ожидающие Ответа (Шаг 1)
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Вопрос</th>
+            <th>Блок</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Q1</td>
+            <td>Какой дизайн-стиль нравится? (Dark/Neon, Minimalist, Organic/Nature)</td>
+            <td>UX/UI</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+          <tr>
+            <td>Q2</td>
+            <td>Какой приоритетный рынок? (Россия, СНГ, Мировой)</td>
+            <td>Маркетинг</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+          <tr>
+            <td>Q3</td>
+            <td>Стиль аватара: реалистичный / мультяшный / аниме / пиксель-арт?</td>
+            <td>Дизайн</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+          <tr>
+            <td>Q4</td>
+            <td>Цена подписки (примерно)? Неделя / месяц?</td>
+            <td>Монетизация</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+          <tr>
+            <td>Q5</td>
+            <td>Какие "источники знаний" хочешь встроить? (книги/методики/авторы)</td>
+            <td>Контент</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+          <tr>
+            <td>Q6</td>
+            <td>Для MVP: начать с web (HTML/CSS/JS) или сразу React?</td>
+            <td>Технологии</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+          <tr>
+            <td>Q7</td>
+            <td>Название валюты? (Coins, Energy, Power, своё название?)</td>
+            <td>Геймдизайн</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+          <tr>
+            <td>Q8</td>
+            <td>Есть ли конкретные конкуренты, от которых хочешь отличаться? (Habitica, Finch, SuperBetter)</td>
+            <td>Стратегия</td>
+            <td><span class="badge badge-active">Ожидает</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="last-updated">
+    Последнее обновление: <span>26 марта 2025</span> · Текущий шаг: <span>Шаг 1 — Уточнение</span> · Файл: <span>struktyrnaiasistema.html</span>
+  </div>
+
+</div>
+</body>
+</html>
