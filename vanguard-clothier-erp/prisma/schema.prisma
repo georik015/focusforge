@@ -1,0 +1,342 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id          String        @id @default(cuid())
+  email       String        @unique
+  password    String
+  name        String
+  role        String        // 'ADMIN', 'SELLER', 'STOREKEEPER'
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  sales       Sale[]
+  shifts      Shift[]
+  attendance  Attendance[]
+  activityLogs ActivityLog[]
+  warehouseId String?
+  warehouse   Warehouse?    @relation(fields: [warehouseId], references: [id])
+}
+
+model Shift {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  openedAt        DateTime  @default(now())
+  closedAt        DateTime?
+  openingBalance  Float
+  closingBalance  Float?
+  expectedBalance Float?
+  notes           String?
+  sales           Sale[]
+  status          String    @default("OPEN") // "OPEN", "CLOSED"
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Warehouse {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  location    String?
+  isMain      Boolean            @default(false)
+  users       User[]
+  stock       WarehouseStock[]
+  movementsTo   StockMovement[] @relation("ToWarehouse")
+  movementsFrom StockMovement[] @relation("FromWarehouse")
+  createdAt   DateTime           @default(now())
+}
+
+model WarehouseStock {
+  id          String           @id @default(cuid())
+  warehouseId String
+  warehouse   Warehouse        @relation(fields: [warehouseId], references: [id])
+  variationId String
+  variation   ProductVariation @relation(fields: [variationId], references: [id])
+  quantity    Int              @default(0)
+
+  @@unique([warehouseId, variationId])
+}
+
+model StockMovement {
+  id              String           @id @default(cuid())
+  variationId     String
+  variation       ProductVariation @relation(fields: [variationId], references: [id])
+  fromWarehouseId String?
+  fromWarehouse   Warehouse?       @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String?
+  toWarehouse     Warehouse?       @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
+  quantity        Int
+  type            String           // "SALE", "SUPPLY", "TRANSFER", "ADJUSTMENT", "RETURN"
+  reason          String?
+  createdAt       DateTime         @default(now())
+}
+
+model Customer {
+  id               String            @id @default(cuid())
+  name             String
+  phone            String?           @unique
+  email            String?           @unique
+  cardId           String?           @unique
+  loyaltyPoints    Int               @default(0)
+  totalSpent       Float             @default(0)
+  passwordHash     String?
+  emailVerified    Boolean           @default(false)
+  emailVerifyToken String?
+  sales            Sale[]
+  storefrontOrders StorefrontOrder[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  logoUrl     String?
+  description String?
+  country     String?
+  isActive    Boolean   @default(true)
+  products    Product[]
+}
+
+model Product {
+  id             String             @id @default(cuid())
+  name           String
+  description    String?
+  imageUrl       String?
+  extraImages    String?            // JSON array of additional image URLs
+  specifications String?            // JSON object of product specs
+  gender         String             @default("UNISEX") // "MALE", "FEMALE", "KIDS", "UNISEX"
+  categoryId     String
+  category       Category           @relation(fields: [categoryId], references: [id])
+  brandId        String
+  brand          Brand              @relation(fields: [brandId], references: [id])
+  variations     ProductVariation[]
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model ProductVariation {
+  id                  String      @id @default(cuid())
+  productId           String
+  product             Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku                 String      @unique
+  size                String
+  color               String
+  purchasePrice       Float
+  salePrice           Float
+  stock               Int         @default(0)
+  lowStockThreshold   Int         @default(5)
+  saleItems           SaleItem[]
+  supplyItems         SupplyItem[]
+  returnItems         ReturnItem[]
+  warehouseStock      WarehouseStock[]
+  stockMovements      StockMovement[]
+  storefrontOrderItems StorefrontOrderItem[]
+  updatedAt           DateTime    @updatedAt
+
+  @@index([productId])
+  @@index([sku])
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  contact   String?
+  email     String?
+  address   String?
+  supplies  Supply[]
+  createdAt DateTime @default(now())
+}
+
+model Sale {
+  id          String     @id @default(cuid())
+  totalAmount Float
+  discount    Float      @default(0)
+  paymentType String     @default("CASH") // "CASH", "CARD", "MIXED", "LOYALTY"
+  sellerId    String
+  seller      User       @relation(fields: [sellerId], references: [id])
+  customerId  String?
+  customer    Customer?  @relation(fields: [customerId], references: [id])
+  shiftId     String?
+  shift       Shift?     @relation(fields: [shiftId], references: [id])
+  items       SaleItem[]
+  returns     Return[]
+  createdAt   DateTime   @default(now())
+
+  @@index([sellerId])
+  @@index([customerId])
+  @@index([shiftId])
+}
+
+model SaleItem {
+  id          String           @id @default(cuid())
+  saleId      String
+  sale        Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  variationId String
+  variation   ProductVariation @relation(fields: [variationId], references: [id])
+  quantity    Int
+  priceAtSale Float
+
+  @@index([saleId])
+  @@index([variationId])
+}
+
+model Return {
+  id          String       @id @default(cuid())
+  saleId      String
+  sale        Sale         @relation(fields: [saleId], references: [id])
+  reason      String?
+  totalRefund Float
+  items       ReturnItem[]
+  createdAt   DateTime     @default(now())
+
+  @@index([saleId])
+}
+
+model ReturnItem {
+  id          String           @id @default(cuid())
+  returnId    String
+  return      Return           @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  variationId String
+  variation   ProductVariation @relation(fields: [variationId], references: [id])
+  quantity    Int
+  refundPrice Float
+
+  @@index([returnId])
+}
+
+model Supply {
+  id          String       @id @default(cuid())
+  supplierId  String
+  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+  totalCost   Float
+  items       SupplyItem[]
+  createdAt   DateTime     @default(now())
+
+  @@index([supplierId])
+}
+
+model SupplyItem {
+  id          String           @id @default(cuid())
+  supplyId    String
+  supply      Supply           @relation(fields: [supplyId], references: [id], onDelete: Cascade)
+  variationId String
+  variation   ProductVariation @relation(fields: [variationId], references: [id])
+  quantity    Int
+  costPrice   Float
+
+  @@index([supplyId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Attendance {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  checkIn     DateTime  @default(now())
+  checkOut    DateTime?
+  status      String    @default("PRESENT") // "PRESENT", "LATE", "ABSENT"
+  notes       String?
+
+  @@index([userId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String   // "RENT", "UTILITY", "SALARY", "MARKETING", "OTHER"
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model InviteToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  role      String    @default("SELLER")
+  createdBy String
+  expiresAt DateTime
+  usedAt    DateTime?
+  usedBy    String?
+  createdAt DateTime  @default(now())
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model StorefrontOrder {
+  id          String               @id @default(cuid())
+  customerId  String?
+  customer    Customer?            @relation(fields: [customerId], references: [id])
+  guestName   String?
+  guestEmail  String?
+  guestPhone  String?
+  address     String?
+  city        String               @default("Москва")
+  paymentType String               @default("CARD") // "CARD", "CASH", "SBP"
+  status      String               @default("PENDING") // "PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"
+  total       Float
+  comment     String?
+  items       StorefrontOrderItem[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([customerId])
+}
+
+model StorefrontOrderItem {
+  id          String           @id @default(cuid())
+  orderId     String
+  order       StorefrontOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variationId String
+  variation   ProductVariation @relation(fields: [variationId], references: [id])
+  quantity    Int
+  priceAtSale Float
+
+  @@index([orderId])
+  @@index([variationId])
+}
+
+model StoreConfig {
+  id           String  @id @default("default")
+  storeName    String  @default("Vanguard Clothier")
+  storeAddress String  @default("")
+  storePhone   String  @default("")
+  storeEmail   String  @default("")
+  currency     String  @default("₽")
+  taxRate      Float   @default(0)
+  city         String  @default("Москва")
+}

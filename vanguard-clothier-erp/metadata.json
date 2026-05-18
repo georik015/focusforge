@@ -1,0 +1,8 @@
+{
+  "name": "Vanguard Clothier ERP",
+  "description": "Industrial-grade Operational Platform for Tier-1 Retail. Real-time Transaction Ledger, Automated Inventory Synchronization, POS-Terminal Management, and Multi-Level Warehouse Control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

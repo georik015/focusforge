@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@theme {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  
+  --color-retail-blue: #0059B2;
+  --color-retail-dark: #121A26;
+  --color-retail-gray: #E2E8F0;
+  --color-retail-border: #CBD5E1;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-100 text-slate-800 antialiased overflow-x-hidden;
+  }
+
+  /* Compact Retail Density */
+  .retail-density {
+    --density-padding: 0.5rem;
+    --density-gap: 0.25rem;
+  }
+}
+
+@layer components {
+  .retail-card {
+    @apply bg-white border border-retail-border shadow-sm rounded-none;
+  }
+  
+  .retail-table {
+    @apply w-full border-collapse text-xs;
+  }
+  
+  .retail-table th {
+    @apply bg-slate-200 text-slate-600 font-bold uppercase tracking-wider px-3 py-2 border border-retail-border sticky top-0 z-10;
+  }
+  
+  .retail-table td {
+    @apply px-3 py-1.5 border border-retail-border align-middle;
+  }
+  
+  .retail-btn {
+    @apply h-8 px-3 text-[10px] font-bold uppercase tracking-widest transition-all;
+  }
+}
+
+.animate-in {
+  animation: animate-in 0.15s ease-out;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
