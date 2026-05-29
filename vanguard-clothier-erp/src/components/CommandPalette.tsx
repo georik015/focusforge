@@ -24,9 +24,20 @@ interface CommandItem {
 
 interface CommandPaletteProps {
   onNavigate: (page: any) => void;
+  userRole?: string;
 }
 
-export function CommandPalette({ onNavigate }: CommandPaletteProps) {
+const ALL_ITEMS = [
+  { id: 'dash',      name: 'Перейти к дашборду',     icon: LayoutDashboard, category: 'Навигация',   tab: 'dashboard', shortcut: 'G D', roles: ['ADMIN','SELLER','STOREKEEPER'] },
+  { id: 'pos',       name: 'Открыть кассу (POS)',     icon: ShoppingCart,    category: 'Торговля',    tab: 'pos',       shortcut: 'G P', roles: ['ADMIN','SELLER'] },
+  { id: 'inv',       name: 'Управление товарами',     icon: Package,         category: 'Навигация',   tab: 'inventory', shortcut: 'G I', roles: ['ADMIN','STOREKEEPER'] },
+  { id: 'crm',       name: 'CRM — Клиенты',           icon: Users,           category: 'Навигация',   tab: 'crm',       shortcut: 'G C', roles: ['ADMIN','SELLER'] },
+  { id: 'reports',   name: 'Отчёты и аналитика',      icon: BarChart3,       category: 'Управление',  tab: 'reports',                    roles: ['ADMIN','STOREKEEPER'] },
+  { id: 'warehouse', name: 'Управление складом',       icon: Truck,           category: 'Навигация',   tab: 'warehouse',                  roles: ['ADMIN','STOREKEEPER'] },
+  { id: 'settings',  name: 'Настройки системы',        icon: Settings,        category: 'Управление',  tab: 'settings',                   roles: ['ADMIN'] },
+] as const;
+
+export function CommandPalette({ onNavigate, userRole }: CommandPaletteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -40,15 +51,9 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
 
   useKey('Escape', () => setIsOpen(false));
 
-  const items: CommandItem[] = [
-    { id: 'dash', name: 'Go to Dashboard', icon: LayoutDashboard, category: 'Navigation', action: () => onNavigate('dashboard'), shortcut: 'G D' },
-    { id: 'pos', name: 'Open Point of Sale', icon: ShoppingCart, category: 'Commerce', action: () => onNavigate('pos'), shortcut: 'G P' },
-    { id: 'inv', name: 'Inventory Management', icon: Package, category: 'Navigation', action: () => onNavigate('inventory'), shortcut: 'G I' },
-    { id: 'crm', name: 'Client Relations (CRM)', icon: Users, category: 'Navigation', action: () => onNavigate('crm'), shortcut: 'G C' },
-    { id: 'reports', name: 'Analytics & Reports', icon: BarChart3, category: 'Management', action: () => onNavigate('reports') },
-    { id: 'warehouse', name: 'Supply Chain Hub', icon: Truck, category: 'Navigation', action: () => onNavigate('warehouse') },
-    { id: 'settings', name: 'System Settings', icon: Settings, category: 'Management', action: () => onNavigate('settings') },
-  ];
+  const items: CommandItem[] = ALL_ITEMS
+    .filter(item => !userRole || item.roles.includes(userRole as any))
+    .map(item => ({ ...item, action: () => onNavigate(item.tab) }));
 
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(search.toLowerCase()) ||

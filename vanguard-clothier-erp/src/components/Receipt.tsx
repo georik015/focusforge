@@ -1,5 +1,5 @@
 import React from 'react';
-
+import Barcode from 'react-barcode';
 import { useTranslation } from 'react-i18next';
 
 interface ReceiptProps {
@@ -16,8 +16,8 @@ export const Receipt = React.forwardRef<HTMLDivElement, ReceiptProps>(({ sale, i
   const currency = t('common.ru_currency', '₽');
 
   const displayName = storeName || t('receipt.header');
-  const displayAddress = storeAddress || 'Центральный хаб, Зона A1';
-  const displayPhone = storePhone ? `ТЕЛ: ${storePhone}` : 'ТЕЛ: +7 (800) 000-Vanguard';
+  const displayAddress = storeAddress || '';
+  const displayPhone = storePhone ? `ТЕЛ: ${storePhone}` : '';
 
   return (
     <div ref={ref} className="w-[80mm] p-4 bg-white text-black font-mono text-xs leading-tight">
@@ -85,8 +85,14 @@ export const Receipt = React.forwardRef<HTMLDivElement, ReceiptProps>(({ sale, i
         </div>
         <p className="mt-4">{(t('receipt.thank_you') as string)}</p>
         <div className="flex justify-center py-2">
-           {/* Mock Barcode placeholder for the receipt */}
-           <div className="w-[40mm] h-[10mm] bg-black" style={{ opacity: 0.1 }}></div>
+          <Barcode
+            value={sale.id?.slice(-12).toUpperCase() || '000000000000'}
+            width={1.2}
+            height={32}
+            fontSize={8}
+            margin={0}
+            displayValue={true}
+          />
         </div>
         <p className="text-[8px]">{t('receipt.scan_loyalty')}</p>
       </div>

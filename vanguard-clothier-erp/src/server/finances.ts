@@ -4,9 +4,16 @@ import { authenticate, authorize } from './auth';
 
 const router = express.Router();
 
-router.get('/expenses', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (_req, res) => {
+router.get('/expenses', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req, res) => {
   try {
-    const expenses = await prisma.expense.findMany({ orderBy: { date: 'desc' } });
+    const { dateFrom, dateTo } = req.query;
+    const where: any = {};
+    if (dateFrom && !isNaN(new Date(String(dateFrom)).getTime())) where.date = { gte: new Date(String(dateFrom)) };
+    if (dateTo && !isNaN(new Date(String(dateTo)).getTime())) {
+      const end = new Date(String(dateTo)); end.setHours(23, 59, 59, 999);
+      where.date = { ...(where.date ?? {}), lte: end };
+    }
+    const expenses = await prisma.expense.findMany({ where, orderBy: { date: 'desc' } });
     res.json(expenses);
   } catch {
     res.status(500).json({ error: 'Failed to fetch expenses' });
@@ -80,11 +87,21 @@ router.delete('/expenses/:id', authenticate, authorize(['ADMIN']), async (req, r
   }
 });
 
-router.get('/p-and-l', authenticate, authorize(['ADMIN']), async (_req, res) => {
+router.get('/p-and-l', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
+    const { dateFrom, dateTo } = req.query;
+    const dateFilter: any = {};
+    if (dateFrom && !isNaN(new Date(String(dateFrom)).getTime())) dateFilter.gte = new Date(String(dateFrom));
+    if (dateTo && !isNaN(new Date(String(dateTo)).getTime())) {
+      const end = new Date(String(dateTo)); end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+    const where = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
+    const expWhere = Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {};
+
     const [sales, expenses] = await Promise.all([
-      prisma.sale.findMany({ include: { items: { include: { variation: true } } } }),
-      prisma.expense.findMany(),
+      prisma.sale.findMany({ where, include: { items: { include: { variation: true } } } }),
+      prisma.expense.findMany({ where: expWhere }),
     ]);
 
     const revenue = sales.reduce((sum, s) => sum + s.totalAmount, 0);

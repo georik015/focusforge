@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, RotateCcw, HelpCircle, Phone, MapPin, Package, ArrowLeft } from 'lucide-react';
+import { Truck, RotateCcw, HelpCircle, Phone, MapPin, Package, ArrowLeft, Info, Shield, FileText, Star } from 'lucide-react';
 
 interface InfoPageProps {
   section?: string;
@@ -12,8 +12,12 @@ const SECTIONS: { id: InfoSection; label: string; icon: React.ElementType }[] = 
   { id: 'delivery', label: 'Доставка и оплата', icon: Truck },
   { id: 'pickup', label: 'Самовывоз', icon: Package },
   { id: 'returns', label: 'Возврат и обмен', icon: RotateCcw },
+  { id: 'loyalty', label: 'Карта лояльности', icon: Star },
   { id: 'faq', label: 'FAQ', icon: HelpCircle },
   { id: 'contacts', label: 'Контакты', icon: Phone },
+  { id: 'about', label: 'О компании', icon: Info },
+  { id: 'privacy', label: 'Конфиденциальность', icon: Shield },
+  { id: 'terms', label: 'Соглашение', icon: FileText },
 ];
 
 export default function InfoPage({ section = 'delivery', onNavigate }: InfoPageProps) {

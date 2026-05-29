@@ -17,7 +17,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
-export function Dashboard() {
+export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const { t } = useTranslation();
   const [stats, setStats] = useState<any>(null);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
@@ -235,7 +235,7 @@ export function Dashboard() {
         ) : (
           <div className="divide-y divide-slate-100">
             {pendingOrders.map(order => (
-              <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors">
+              <div key={order.id} onClick={() => onNavigate?.('orders')} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer">
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 bg-amber-50 border border-amber-200 flex items-center justify-center">
                     <Clock size={13} className="text-amber-600" />

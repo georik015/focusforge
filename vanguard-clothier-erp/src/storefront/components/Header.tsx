@@ -20,7 +20,7 @@ const MAIN_CATEGORIES = [
   { label: 'Обувь', params: { category: 'Обувь' }, icon: '👟' },
   { label: 'Аксессуары', params: { category: 'Аксессуары' }, icon: '🎒' },
   { label: 'Новинки', params: { sort: 'newest' }, icon: '✨' },
-  { label: 'Акции', params: { sort: 'price_asc' }, icon: '🏷️' },
+  { label: 'Акции', params: { discount: 'true', sort: 'newest' }, icon: '🏷️' },
 ];
 
 const QUICK_LINKS = ['Кроссовки', 'Футболки', 'Толстовки', 'Брюки', 'Джинсы', 'Куртки', 'Пальто', 'Платья'];

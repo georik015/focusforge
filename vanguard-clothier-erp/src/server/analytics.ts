@@ -16,8 +16,7 @@ router.get('/dashboard', authenticate, async (_req, res) => {
       prisma.productVariation.findMany({
         where: { product: { isActive: true } },
         include: { product: true },
-        take: 10
-      }).then(all => all.filter(v => v.stock <= v.lowStockThreshold)),
+      }).then(all => all.filter(v => v.stock <= v.lowStockThreshold).slice(0, 20)),
       prisma.activityLog.findMany({
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },

@@ -600,6 +600,21 @@ export async function seedProductionData() {
   }
   console.log('\n✅ Товары созданы');
 
+  // WarehouseStock — критично для POS-продаж
+  console.log('🏪 Создание складских остатков...');
+  const allVariations = await prisma.productVariation.findMany({ select: { id: true, stock: true } });
+  const warehouseStockData: { warehouseId: string; variationId: string; quantity: number }[] = [];
+  for (const variation of allVariations) {
+    const mainQty = Math.ceil(variation.stock * 0.6);
+    const secondaryQty = variation.stock - mainQty;
+    warehouseStockData.push(
+      { warehouseId: mainWarehouse.id, variationId: variation.id, quantity: mainQty },
+      { warehouseId: secondaryWarehouse.id, variationId: variation.id, quantity: secondaryQty }
+    );
+  }
+  await prisma.warehouseStock.createMany({ data: warehouseStockData });
+  console.log(`✅ Складские остатки: ${allVariations.length} вариаций × 2 склада`);
+
   // Customers
   const customers = [
     { name: 'Алина Морозова', phone: '+79161234567', email: 'alina@example.com', loyaltyPoints: 340, totalSpent: 24500 },

@@ -65,12 +65,13 @@ export function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const fetchStats = useCallback(async () => {
     try {
       const data = await api.get<Record<string, number>>('/orders/stats');
       setStats(data);
-    } catch { /* silent */ }
+    } catch { /* non-critical, don't block UI */ }
   }, []);
 
   const fetchOrders = useCallback(async () => {
@@ -79,7 +80,9 @@ export function Orders() {
       const qs = activeTab !== 'ALL' ? `?status=${activeTab}` : '';
       const data = await api.get<{ orders: Order[] }>(`/orders${qs}`);
       setOrders(data.orders);
-    } catch { /* silent */ } finally {
+    } catch (err: any) {
+      setActionError(err?.message || 'Не удалось загрузить заказы');
+    } finally {
       setLoading(false);
     }
   }, [activeTab]);
@@ -89,15 +92,18 @@ export function Orders() {
     fetchStats();
   }, [fetchOrders, fetchStats]);
 
-  const handleRefresh = () => { fetchOrders(); fetchStats(); };
+  const handleRefresh = () => { setActionError(''); fetchOrders(); fetchStats(); };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(true);
+    setActionError('');
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
       await Promise.all([fetchOrders(), fetchStats()]);
       setSelectedOrder(prev => prev?.id === orderId ? { ...prev, status: newStatus } : prev);
-    } catch { /* silent */ } finally {
+    } catch (err: any) {
+      setActionError(err?.message || 'Не удалось изменить статус');
+    } finally {
       setUpdatingStatus(false);
     }
   };
@@ -105,11 +111,14 @@ export function Orders() {
   const handleCancelOrder = async (orderId: string) => {
     if (!window.confirm('Отменить заказ? Это действие нельзя отменить.')) return;
     setCancelling(true);
+    setActionError('');
     try {
       await api.post(`/orders/${orderId}/cancel`, {});
       await Promise.all([fetchOrders(), fetchStats()]);
       setSelectedOrder(prev => prev?.id === orderId ? { ...prev, status: 'CANCELLED' } : prev);
-    } catch { /* silent */ } finally {
+    } catch (err: any) {
+      setActionError(err?.message || 'Не удалось отменить заказ');
+    } finally {
       setCancelling(false);
     }
   };
@@ -119,6 +128,12 @@ export function Orders() {
 
   return (
     <div className="space-y-4 pb-12">
+      {actionError && (
+        <div className="flex items-center justify-between px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 font-medium">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError('')} className="ml-4 text-red-400 hover:text-red-600"><X size={14} /></button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

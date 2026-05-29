@@ -45,17 +45,23 @@ export function Finances() {
   const [editExpenseData, setEditExpenseData] = useState({ amount: '', category: 'OTHER', description: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [expenseError, setExpenseError] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (from?: string, to?: string) => {
     setIsLoading(true);
     try {
+      const params = new URLSearchParams();
+      if (from) params.set('dateFrom', from);
+      if (to) params.set('dateTo', to);
+      const qs = params.toString() ? `?${params}` : '';
       const [expData, pl, stats] = await Promise.all([
-        api.get<any[]>('/finance/expenses'),
-        api.get<any>('/finance/p-and-l'),
+        api.get<any[]>(`/finance/expenses${qs}`),
+        api.get<any>(`/finance/p-and-l${qs}`),
         api.get<any>('/finance/expenses/stats'),
       ]);
       setExpenses(expData);
@@ -67,6 +73,9 @@ export function Finances() {
       setIsLoading(false);
     }
   };
+
+  const handleApplyPeriod = () => fetchData(dateFrom || undefined, dateTo || undefined);
+  const handleResetPeriod = () => { setDateFrom(''); setDateTo(''); fetchData(); };
 
   const openEdit = (expense: any) => {
     setEditingExpense(expense);
@@ -82,7 +91,7 @@ export function Finances() {
     try {
       await api.patch(`/finance/expenses/${editingExpense.id}`, editExpenseData);
       setEditingExpense(null);
-      fetchData();
+      fetchData(dateFrom || undefined, dateTo || undefined);
     } catch {
       setExpenseError('Ошибка при обновлении расхода');
     }
@@ -92,7 +101,7 @@ export function Finances() {
     if (!window.confirm('Удалить этот расход?')) return;
     try {
       await api.delete(`/finance/expenses/${id}`);
-      fetchData();
+      fetchData(dateFrom || undefined, dateTo || undefined);
     } catch {
       setExpenseError('Ошибка при удалении расхода');
     }
@@ -108,7 +117,7 @@ export function Finances() {
       await api.post('/finance/expenses', newExpense);
       setIsAddingExpense(false);
       setNewExpense({ amount: '', category: 'OTHER', description: '' });
-      fetchData();
+      fetchData(dateFrom || undefined, dateTo || undefined);
     } catch {
       setExpenseError('Ошибка при добавлении расхода');
     }
@@ -195,6 +204,27 @@ export function Finances() {
             <Download size={18} /> {t('finances.statement_export')}
           </Button>
         </div>
+      </div>
+
+      {/* Period filter */}
+      <div className="flex flex-wrap items-end gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Период с</label>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-10 px-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-400" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">По</label>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-10 px-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-400" />
+        </div>
+        <Button onClick={handleApplyPeriod} className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-widest">Применить</Button>
+        {(dateFrom || dateTo) && (
+          <Button onClick={handleResetPeriod} variant="outline" className="h-10 px-4 rounded-xl border-slate-200 font-black text-xs uppercase tracking-widest text-slate-500">Сбросить</Button>
+        )}
+        {(dateFrom || dateTo) && (
+          <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest self-end pb-2">
+            {dateFrom && dateTo ? `${dateFrom} — ${dateTo}` : dateFrom ? `с ${dateFrom}` : `до ${dateTo}`}
+          </span>
+        )}
       </div>
 
       {/* P&L Cards */}

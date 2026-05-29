@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Heart, Share2, Star, ChevronLeft, ChevronRight,
-  ShoppingBag, Check, ZoomIn, Package, Truck, RotateCcw,
+  ShoppingBag, Check, ZoomIn, Package, Truck, RotateCcw, MessageSquare, ThumbsUp,
 } from 'lucide-react';
 import { useWishlistStore } from '../../store/wishlistStore';
 import { useCartStore } from '../../store/cartStore';
@@ -51,6 +51,12 @@ function StarRating({ rating, count }: { rating: number; count?: number }) {
   );
 }
 
+const DEMO_REVIEWS = [
+  { id: '1', author: 'Алина М.', rating: 5, date: '2026-04-12', text: 'Отличное качество! Материал приятный, размер точный. Уже заказала ещё одну вещь из этого бренда.', helpful: 12 },
+  { id: '2', author: 'Дмитрий К.', rating: 4, date: '2026-03-28', text: 'Хорошая вещь за свои деньги. Немного отличается от фото по оттенку, но в целом доволен. Доставка быстрая.', helpful: 7 },
+  { id: '3', author: 'Светлана П.', rating: 5, date: '2026-03-05', text: 'Покупаю уже третий раз. Качество стабильно высокое, доставка в срок. Рекомендую!', helpful: 21 },
+];
+
 export default function ProductPage({ productId, onBack, onNavigate }: ProductPageProps) {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +66,13 @@ export default function ProductPage({ productId, onBack, onNavigate }: ProductPa
   const [added, setAdded] = useState(false);
   const [shared, setShared] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+
+  // Reviews state
+  const [reviews, setReviews] = useState(DEMO_REVIEWS);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewHover, setReviewHover] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const { has, toggle } = useWishlistStore();
   const addItem = useCartStore(s => s.addItem);
 
@@ -430,6 +443,81 @@ export default function ProductPage({ productId, onBack, onNavigate }: ProductPa
                 </div>
               </div>
             )}
+
+            {/* Reviews */}
+            <div className="pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <MessageSquare size={16} className="text-blue-500" />
+                  Отзывы покупателей
+                  <span className="text-sm font-normal text-gray-400">({reviews.length})</span>
+                </h3>
+                {product.rating && <StarRating rating={product.rating} />}
+              </div>
+
+              <div className="space-y-4 mb-6">
+                {reviews.map(review => (
+                  <div key={review.id} className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="font-semibold text-sm text-gray-900">{review.author}</div>
+                        <div className="text-xs text-gray-400">{new Date(review.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                      </div>
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} size={12} className={i <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'} />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed">{review.text}</p>
+                    <button className="mt-2 flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors">
+                      <ThumbsUp size={11} /> Полезно ({review.helpful})
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Review form */}
+              {reviewSubmitted ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 flex items-center gap-2">
+                  <Check size={16} /> Спасибо! Ваш отзыв отправлен на проверку.
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-bold text-gray-700">Оставить отзыв</p>
+                  <div className="flex gap-1">
+                    {[1,2,3,4,5].map(i => (
+                      <button
+                        key={i}
+                        onMouseEnter={() => setReviewHover(i)}
+                        onMouseLeave={() => setReviewHover(0)}
+                        onClick={() => setReviewRating(i)}
+                      >
+                        <Star size={24} className={(reviewHover || reviewRating) >= i ? 'text-amber-400 fill-amber-400' : 'text-gray-300 fill-gray-300'} />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={reviewText}
+                    onChange={e => setReviewText(e.target.value)}
+                    placeholder="Поделитесь впечатлениями о товаре..."
+                    rows={3}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!reviewRating || !reviewText.trim()) return;
+                      setReviews(prev => [{ id: String(Date.now()), author: 'Вы', rating: reviewRating, date: new Date().toISOString().split('T')[0], text: reviewText.trim(), helpful: 0 }, ...prev]);
+                      setReviewSubmitted(true);
+                    }}
+                    disabled={!reviewRating || !reviewText.trim()}
+                    className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Отправить отзыв
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* SKU */}
             {selectedVariation && (

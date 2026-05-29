@@ -160,6 +160,8 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
       if (brand) params.set('brand', brand);
       if (sort !== 'newest') params.set('sort', sort);
       if (inStock) params.set('inStock', 'true');
+      if (minPrice) params.set('minPrice', minPrice);
+      if (maxPrice) params.set('maxPrice', maxPrice);
 
       const res = await fetch(`/api/public/products?${params}`, { signal });
       if (res.ok) {
@@ -173,7 +175,7 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
     } finally {
       setLoading(false);
     }
-  }, [search, gender, category, brand, sort, inStock]);
+  }, [search, gender, category, brand, sort, inStock, minPrice, maxPrice]);
 
   useEffect(() => {
     const controller = new AbortController();

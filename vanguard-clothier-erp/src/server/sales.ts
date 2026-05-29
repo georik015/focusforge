@@ -30,6 +30,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       let totalAmount = 0;
+      const verifiedPrices = new Map<string, number>();
       const user = await tx.user.findUnique({ where: { id: sellerId } });
       const warehouseId = user?.warehouseId;
 
@@ -50,7 +51,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
           throw new Error(`Insufficient stock in current warehouse for SKU: ${variation?.sku || 'unknown'}`);
         }
 
-        totalAmount += item.priceAtSale * item.quantity;
+        verifiedPrices.set(item.variationId, variation.salePrice);
+        totalAmount += variation.salePrice * item.quantity;
 
         // 2. Decrement Local Warehouse Stock
         await tx.warehouseStock.update({
@@ -91,7 +93,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             create: items.map((item: any) => ({
               variationId: item.variationId,
               quantity: item.quantity,
-              priceAtSale: item.priceAtSale
+              priceAtSale: verifiedPrices.get(item.variationId) ?? item.priceAtSale
             }))
           }
         },
@@ -115,7 +117,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         data: {
           userId: sellerId,
           action: 'SALE_COMPLETED',
-          details: `Transaction #${sale.id} finalized at Terminal. Total: $${finalAmount}`
+          details: `Продажа #${sale.id.slice(-6).toUpperCase()} завершена. Сумма: ₽${finalAmount}`
         }
       });
 

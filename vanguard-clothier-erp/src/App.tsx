@@ -106,7 +106,7 @@ function App() {
         >
           {(() => {
             switch (activeTab) {
-              case 'dashboard': return <Dashboard />;
+              case 'dashboard': return <Dashboard onNavigate={setActiveTab} />;
               case 'catalog': return <Catalog />;
               case 'brands': return <Brands />;
               case 'inventory': return <Inventory />;
@@ -118,7 +118,7 @@ function App() {
               case 'orders': return <Orders />;
               case 'warehouse': return <Warehouses />;
               case 'finances': return <Finances />;
-              default: return <Dashboard />;
+              default: return <Dashboard onNavigate={setActiveTab} />;
             }
           })()}
         </motion.div>
@@ -129,7 +129,7 @@ function App() {
   return (
     <ErrorBoundary>
       <div className="relative">
-        <CommandPalette onNavigate={setActiveTab} />
+        <CommandPalette onNavigate={setActiveTab} userRole={user?.role} />
         <DashboardLayout
           activeTab={activeTab}
           setActiveTab={setActiveTab}

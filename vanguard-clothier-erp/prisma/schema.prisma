@@ -203,6 +203,7 @@ model Return {
   saleId      String
   sale        Sale         @relation(fields: [saleId], references: [id])
   reason      String?
+  status      String       @default("APPROVED") // "PENDING", "APPROVED", "REJECTED"
   totalRefund Float
   items       ReturnItem[]
   createdAt   DateTime     @default(now())

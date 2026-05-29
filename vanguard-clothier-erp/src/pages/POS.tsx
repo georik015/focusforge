@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Search,
   ShoppingCart,
@@ -76,6 +77,7 @@ export function POS() {
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [closingBalanceInput, setClosingBalanceInput] = useState('0');
   const [isShiftClosing, setIsShiftClosing] = useState(false);
+  const [completedSaleId, setCompletedSaleId] = useState('');
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -320,7 +322,7 @@ export function POS() {
   const updateQuantity = (tempId: string, delta: number) => {
     setCart(prev => prev.map(item => {
       if (item.tempId === tempId) {
-        const newQty = Math.max(1, item.quantity + delta);
+        const newQty = Math.max(1, Math.min(item.variation.stock, item.quantity + delta));
         return { ...item, quantity: newQty };
       }
       return item;
@@ -351,7 +353,8 @@ export function POS() {
     };
 
     try {
-      await api.post('/sales', saleData);
+      const saved = await api.post<{ id: string }>('/sales', saleData);
+      flushSync(() => setCompletedSaleId(saved.id));
       handlePrint();
       completeSale();
     } catch (err) {
@@ -359,6 +362,7 @@ export function POS() {
       queue.push({ ...saleData, offlineId: Date.now() });
       localStorage.setItem('vanguard_offline_sales', JSON.stringify(queue));
       setPendingSyncCount(prev => prev + 1);
+      flushSync(() => setCompletedSaleId(`offline-${Date.now()}`));
       handlePrint();
       completeSale();
     } finally {
@@ -385,7 +389,7 @@ export function POS() {
       <div className="hidden">
         <Receipt
           ref={receiptRef}
-          sale={{ totalAmount: total, discount, paymentType, id: 'temp-id' }}
+          sale={{ totalAmount: total, discount, paymentType, id: completedSaleId || 'SALE' }}
           items={cart}
           storeName={storeConfig.storeName}
           storeAddress={storeConfig.storeAddress}
@@ -662,9 +666,30 @@ export function POS() {
              </div>
 
              <div className="space-y-1 py-1 border-t border-white/10">
+                {/* Discount field */}
+                <div className="flex items-center gap-2 pb-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">{t('pos.discount')} ₽</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={subtotal}
+                    value={discount || ''}
+                    onChange={(e) => setDiscount(Math.min(subtotal, Math.max(0, parseFloat(e.target.value) || 0)))}
+                    placeholder="0"
+                    className="flex-1 h-8 bg-white/10 border border-white/20 text-white text-sm font-black text-right px-2 focus:outline-none focus:border-retail-blue"
+                  />
+                  {discount > 0 && (
+                    <button onClick={() => setDiscount(0)} className="text-slate-500 hover:text-red-400 transition-colors">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
                 <div className="flex justify-between items-end border-b border-white/5 pb-2">
                    <span className="text-4xl font-black text-retail-blue tracking-tighter leading-none italic">{t('common.total')}</span>
                    <div className="text-right">
+                      {discount > 0 && (
+                        <div className="text-[10px] font-black text-slate-400 line-through opacity-50">₽{subtotal.toLocaleString()}</div>
+                      )}
                       <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50 mb-1">СУММА К ОПЛАТЕ</div>
                       <div className="text-6xl font-black text-white tracking-tighter leading-none">
                         ₽{total.toLocaleString()}

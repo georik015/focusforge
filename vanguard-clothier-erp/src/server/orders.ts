@@ -123,14 +123,23 @@ router.post('/:id/cancel', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKEE
 
       // Восстанавливаем сток только если заказ был подтверждён (CONFIRMED/SHIPPED)
       if (order.status === 'CONFIRMED' || order.status === 'SHIPPED') {
+        const mainWarehouse = await tx.warehouse.findFirst({ where: { isMain: true } });
         for (const item of order.items) {
           await tx.productVariation.update({
             where: { id: item.variationId },
             data: { stock: { increment: item.quantity } },
           });
+          if (mainWarehouse) {
+            await tx.warehouseStock.upsert({
+              where: { warehouseId_variationId: { warehouseId: mainWarehouse.id, variationId: item.variationId } },
+              update: { quantity: { increment: item.quantity } },
+              create: { warehouseId: mainWarehouse.id, variationId: item.variationId, quantity: item.quantity },
+            });
+          }
           await tx.stockMovement.create({
             data: {
               variationId: item.variationId,
+              toWarehouseId: mainWarehouse?.id,
               quantity: item.quantity,
               type: 'RETURN',
               reason: `Отмена онлайн-заказа #${order.id.slice(-8).toUpperCase()}`,

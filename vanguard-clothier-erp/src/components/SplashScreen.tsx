@@ -70,10 +70,10 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
             exit={{ opacity: 0, y: -10 }}
             className="text-slate-400 text-[10px] font-black uppercase tracking-widest text-center mt-6"
           >
-            {stage === 0 && "Initializing Core Engine..."}
-            {stage === 1 && "Verifying Security Protocols..."}
-            {stage === 2 && "Synchronizing Terminal 01..."}
-            {stage === 3 && "System Ready. Directing to Terminal."}
+            {stage === 0 && "Инициализация системы..."}
+            {stage === 1 && "Проверка безопасности..."}
+            {stage === 2 && "Синхронизация данных..."}
+            {stage === 3 && "Система готова. Загрузка терминала."}
           </motion.p>
         </AnimatePresence>
       </div>

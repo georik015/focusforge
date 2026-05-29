@@ -147,7 +147,7 @@ export function Inventory() {
       newCategory: '',
       newBrand: '',
     });
-    setVariations([]);
+    setVariations([]); // empty — only new variations to add
     setSaveError('');
     setIsModalOpen(true);
   };
@@ -188,14 +188,30 @@ export function Inventory() {
       if (!brandId) { setSaving(false); setSaveError('Выберите или создайте бренд'); return; }
 
       if (editingProduct) {
-        const updated = await api.put<Product>(`/products/${editingProduct.id}`, {
+        await api.put<Product>(`/products/${editingProduct.id}`, {
           name: form.name.trim(),
           description: form.description.trim(),
           imageUrl: form.imageUrl.trim() || null,
           categoryId,
           brandId,
         });
-        setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+        // Add new variations if any were defined
+        for (const v of variations) {
+          if (!v.sku.trim() || !v.size.trim() || !v.color.trim()) {
+            setSaving(false);
+            return setSaveError('Заполните Артикул, Размер и Цвет для каждой новой вариации');
+          }
+          await api.post(`/products/${editingProduct.id}/variations`, {
+            sku: v.sku,
+            size: v.size,
+            color: v.color,
+            purchasePrice: parseFloat(v.purchasePrice) || 0,
+            salePrice: parseFloat(v.salePrice) || 0,
+            stock: parseInt(v.stock) || 0,
+            lowStockThreshold: parseInt(v.lowStockThreshold) || 5,
+          });
+        }
+        await fetchAll();
       } else {
         if (variations.length === 0) return setSaveError('Добавьте хотя бы одну вариацию');
         for (const v of variations) {
@@ -501,29 +517,68 @@ export function Inventory() {
               )}
 
               {editingProduct && (
-                <div className="bg-slate-50 border border-retail-border px-4 py-3">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Редактирование вариаций</p>
-                  <div className="space-y-1">
-                    {editingProduct.variations.map((v) => (
-                      <div key={v.id} className="flex items-center justify-between bg-white border border-retail-border px-3 py-2">
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-slate-700">
-                          <span className="font-black">{v.sku}</span>
-                          <span className="bg-slate-100 px-1">{v.size}</span>
-                          <span className="bg-slate-100 px-1">{v.color}</span>
-                          <span className="text-retail-blue font-black">₽{v.salePrice}</span>
-                          <span className={cn('font-black', v.stock <= v.lowStockThreshold ? 'text-red-600' : 'text-emerald-600')}>
-                            {v.stock} шт.
-                          </span>
+                <div className="space-y-3">
+                  <div className="bg-slate-50 border border-retail-border px-4 py-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Текущие вариации</p>
+                    <div className="space-y-1">
+                      {editingProduct.variations.map((v) => (
+                        <div key={v.id} className="flex items-center justify-between bg-white border border-retail-border px-3 py-2">
+                          <div className="flex items-center gap-3 text-[10px] font-mono text-slate-700">
+                            <span className="font-black">{v.sku}</span>
+                            <span className="bg-slate-100 px-1">{v.size}</span>
+                            <span className="bg-slate-100 px-1">{v.color}</span>
+                            <span className="text-retail-blue font-black">₽{v.salePrice}</span>
+                            <span className={cn('font-black', v.stock <= v.lowStockThreshold ? 'text-red-600' : 'text-emerald-600')}>
+                              {v.stock} шт.
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openEditVariation(v)}
+                            className="flex items-center gap-1 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-retail-blue border border-retail-blue hover:bg-retail-blue hover:text-white transition-colors"
+                          >
+                            <Edit size={10} /> ИЗМЕНИТЬ
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => openEditVariation(v)}
-                          className="flex items-center gap-1 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-retail-blue border border-retail-blue hover:bg-retail-blue hover:text-white transition-colors"
-                        >
-                          <Edit size={10} /> ИЗМЕНИТЬ
-                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border border-retail-border/60 px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Добавить новые вариации</p>
+                      <button onClick={addVariation} className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-retail-blue hover:underline">
+                        <Plus size={11} /> СТРОКУ
+                      </button>
+                    </div>
+                    {variations.length > 0 && (
+                      <div className="border border-retail-border overflow-hidden">
+                        <div className="grid grid-cols-7 bg-slate-50 border-b border-retail-border">
+                          {['Артикул*', 'Размер*', 'Цвет*', 'Закуп.', 'Продажа', 'Остаток', ''].map(h => (
+                            <div key={h} className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">{h}</div>
+                          ))}
+                        </div>
+                        {variations.map((v, i) => (
+                          <div key={i} className="grid grid-cols-7 border-b border-retail-border last:border-b-0">
+                            {(['sku', 'size', 'color', 'purchasePrice', 'salePrice', 'stock'] as (keyof VariationDraft)[]).map(field => (
+                              <input
+                                key={field}
+                                className="px-2 py-1.5 text-[10px] font-mono border-r border-retail-border last:border-r-0 bg-white focus:bg-blue-50 outline-none w-full"
+                                value={v[field]}
+                                onChange={e => updateVariation(i, field, e.target.value)}
+                                placeholder={field === 'purchasePrice' || field === 'salePrice' ? '0' : ''}
+                              />
+                            ))}
+                            <button onClick={() => removeVariation(i)} className="flex items-center justify-center text-slate-300 hover:text-red-500 transition-colors">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+                    {variations.length === 0 && (
+                      <p className="text-[9px] text-slate-400 font-bold">Нажмите «СТРОКУ» чтобы добавить новую вариацию к товару</p>
+                    )}
                   </div>
                 </div>
               )}

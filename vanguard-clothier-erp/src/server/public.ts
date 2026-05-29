@@ -33,7 +33,7 @@ function authenticateCustomer(req: Request): string | null {
 
 router.get('/products', async (req, res) => {
   try {
-    const { category, brand, search, sort, inStock, gender } = req.query;
+    const { category, brand, search, sort, inStock, gender, minPrice, maxPrice } = req.query;
     const where: any = { isActive: true };
 
     if (gender && gender !== 'ALL') where.gender = String(gender);
@@ -49,6 +49,12 @@ router.get('/products', async (req, res) => {
     }
     if (inStock === 'true') {
       where.variations = { some: { stock: { gt: 0 } } };
+    }
+    const priceFilter: any = {};
+    if (minPrice && !isNaN(Number(minPrice))) priceFilter.gte = Number(minPrice);
+    if (maxPrice && !isNaN(Number(maxPrice))) priceFilter.lte = Number(maxPrice);
+    if (Object.keys(priceFilter).length > 0) {
+      where.variations = { ...(where.variations ?? {}), some: { ...(where.variations?.some ?? {}), salePrice: priceFilter } };
     }
 
     const products = await prisma.product.findMany({
@@ -285,68 +291,78 @@ router.post('/orders', async (req, res) => {
   const customerId = authenticateCustomer(req);
 
   try {
-    // Fetch actual prices from DB — never trust client-provided price
-    const variationIds = items.map((i: any) => String(i.variationId));
-    const variations = await prisma.productVariation.findMany({
-      where: { id: { in: variationIds }, product: { isActive: true } },
-      select: { id: true, salePrice: true, stock: true },
-    });
-    if (variations.length !== variationIds.length) {
-      return res.status(400).json({ error: 'Один или несколько товаров недоступны' });
-    }
-    const varMap = new Map(variations.map(v => [v.id, v]));
-
-    for (const item of items) {
-      const v = varMap.get(item.variationId)!;
-      if (v.stock < Number(item.quantity)) {
-        return res.status(400).json({ error: 'Недостаточно товара на складе' });
-      }
-    }
-
-    const total = items.reduce((sum: number, item: any) => {
-      return sum + varMap.get(item.variationId)!.salePrice * Number(item.quantity);
-    }, 0);
-
-    const order = await prisma.storefrontOrder.create({
-      data: {
-        customerId: customerId || null,
-        guestName: name.trim(),
-        guestEmail: email?.trim() || null,
-        guestPhone: phone?.trim() || null,
-        address: address.trim(),
-        city: city || 'Москва',
-        paymentType: paymentType || 'CARD',
-        comment: comment?.trim() || null,
-        total,
-        items: {
-          create: items.map((item: any) => ({
-            variationId: item.variationId,
-            quantity: Number(item.quantity),
-            priceAtSale: varMap.get(item.variationId)!.salePrice,
-          })),
-        },
-      },
-      include: { items: true },
-    });
-
-    // Update loyalty points if registered customer
-    if (customerId) {
-      const points = Math.floor(total / 10);
-      await prisma.customer.update({
-        where: { id: customerId },
-        data: { loyaltyPoints: { increment: points }, totalSpent: { increment: total } },
+    const result = await prisma.$transaction(async (tx) => {
+      // Fetch actual prices from DB — never trust client-provided price
+      const variationIds = items.map((i: any) => String(i.variationId));
+      const variations = await tx.productVariation.findMany({
+        where: { id: { in: variationIds }, product: { isActive: true } },
+        select: { id: true, salePrice: true, stock: true },
       });
-    }
+      if (variations.length !== variationIds.length) {
+        throw Object.assign(new Error('Один или несколько товаров недоступны'), { statusCode: 400 });
+      }
+      const varMap = new Map(variations.map(v => [v.id, v]));
 
-    res.status(201).json({ orderId: order.id, total: order.total, status: order.status });
+      for (const item of items) {
+        const v = varMap.get(item.variationId)!;
+        if (v.stock < Number(item.quantity)) {
+          throw Object.assign(new Error('Недостаточно товара на складе'), { statusCode: 400 });
+        }
+      }
+
+      const total = items.reduce((sum: number, item: any) => {
+        return sum + varMap.get(item.variationId)!.salePrice * Number(item.quantity);
+      }, 0);
+
+      const order = await tx.storefrontOrder.create({
+        data: {
+          customerId: customerId || null,
+          guestName: name.trim(),
+          guestEmail: email?.trim() || null,
+          guestPhone: phone?.trim() || null,
+          address: address.trim(),
+          city: city || 'Москва',
+          paymentType: paymentType || 'CARD',
+          comment: comment?.trim() || null,
+          total,
+          items: {
+            create: items.map((item: any) => ({
+              variationId: item.variationId,
+              quantity: Number(item.quantity),
+              priceAtSale: varMap.get(item.variationId)!.salePrice,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      // Decrement global stock atomically
+      for (const item of items) {
+        await tx.productVariation.update({
+          where: { id: item.variationId },
+          data: { stock: { decrement: Number(item.quantity) } },
+        });
+      }
+
+      // Update loyalty points if registered customer
+      if (customerId) {
+        const points = Math.floor(total / 10);
+        await tx.customer.update({
+          where: { id: customerId },
+          data: { loyaltyPoints: { increment: points }, totalSpent: { increment: total } },
+        });
+      }
+
+      return order;
+    });
+
+    res.status(201).json({ orderId: result.id, total: result.total, status: result.status });
   } catch (err: any) {
     console.error('ORDER_CREATE_ERROR:', err?.message || err);
-    const isInvalidRef = err?.message?.includes('foreign key') || err?.message?.includes('Unique constraint') || err?.code === 'P2003';
-    res.status(500).json({
-      error: isInvalidRef
-        ? 'Один или несколько товаров больше недоступны. Обновите корзину и попробуйте снова.'
-        : 'Ошибка оформления заказа'
-    });
+    if (err?.statusCode === 400) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'Ошибка оформления заказа' });
   }
 });
 
