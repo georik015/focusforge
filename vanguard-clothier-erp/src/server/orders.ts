@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize, AuthRequest } from './auth';
+import { sendOrderStatusUpdate } from './email';
 
 const router = Router();
 
@@ -100,6 +101,14 @@ router.patch('/:id/status', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKE
         action: 'ORDER_STATUS_UPDATED',
         details: `Заказ #${req.params.id.slice(-8).toUpperCase()}: ${order.status} → ${status}`,
       },
+    });
+
+    // Fire-and-forget email to customer
+    sendOrderStatusUpdate({
+      id: updated.id,
+      guestEmail: updated.guestEmail,
+      guestName: updated.guestName,
+      status: updated.status,
     });
 
     res.json(updated);

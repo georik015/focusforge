@@ -44,7 +44,7 @@ export function POS() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [products, setProducts] = useState<ProductVariation[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [paymentType, setPaymentType] = useState<'CASH' | 'CARD'>('CASH');
+  const [paymentType, setPaymentType] = useState<'CASH' | 'CARD' | 'LOYALTY'>('CASH');
   const [discount, setDiscount] = useState(0);
   const [currentShift, setCurrentShift] = useState<any>(null);
   const [showShiftModal, setShowShiftModal] = useState(false);
@@ -136,17 +136,30 @@ export function POS() {
     if (queue.length === 0) return;
 
     setIsSyncing(true);
-    const remainingQueue = [];
+    const remainingQueue: any[] = [];
+    let successCount = 0;
+    const errors: string[] = [];
+
     for (const sale of queue) {
       try {
         await api.post('/sales', sale);
-      } catch (err) {
+        successCount++;
+      } catch (err: any) {
         remainingQueue.push(sale);
+        const msg = err?.message || 'Ошибка сервера';
+        errors.push(msg);
       }
     }
+
     localStorage.setItem('vanguard_offline_sales', JSON.stringify(remainingQueue));
     setPendingSyncCount(remainingQueue.length);
     setIsSyncing(false);
+
+    if (errors.length > 0) {
+      alert(`Синхронизация: отправлено ${successCount}, ошибок ${errors.length}.\n\nПричины:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n...ещё ${errors.length - 3}` : ''}`);
+    } else if (successCount > 0) {
+      alert(`Синхронизация завершена: ${successCount} продаж отправлено успешно.`);
+    }
   };
 
   // Customer search handlers
@@ -722,10 +735,24 @@ export function POS() {
                 <button onClick={() => setIsCheckoutOpen(false)} className="text-slate-400"><X /></button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <PaymentOption active={paymentType === 'CASH'} onClick={() => setPaymentType('CASH')} icon={Banknote} label={t('pos.cash')} />
                 <PaymentOption active={paymentType === 'CARD'} onClick={() => setPaymentType('CARD')} icon={CreditCard} label={t('pos.card')} />
+                <PaymentOption
+                  active={paymentType === 'LOYALTY'}
+                  onClick={() => customer ? setPaymentType('LOYALTY') : undefined}
+                  icon={Star}
+                  label="БАЛЛЫ"
+                  disabled={!customer}
+                  subtitle={customer ? `${customer.loyaltyPoints} баллов` : 'нет клиента'}
+                  insufficient={paymentType === 'LOYALTY' && !!customer && customer.loyaltyPoints < Math.ceil(total)}
+                />
               </div>
+              {paymentType === 'LOYALTY' && customer && customer.loyaltyPoints < Math.ceil(total) && (
+                <div className="px-3 py-2 bg-red-900/30 border border-red-700/40 text-red-400 text-[10px] font-bold">
+                  Недостаточно баллов: нужно {Math.ceil(total)}, доступно {customer.loyaltyPoints}
+                </div>
+              )}
 
               <div className="bg-slate-900 p-8 text-white">
                  <div className="flex justify-between items-end">
@@ -741,10 +768,10 @@ export function POS() {
                 >
                   {t('common.cancel')}
                 </button>
-                <button 
-                  className="flex-[2] h-14 bg-retail-blue text-white font-black uppercase text-sm tracking-widest shadow-xl shadow-retail-blue/20"
+                <button
+                  className="flex-[2] h-14 bg-retail-blue text-white font-black uppercase text-sm tracking-widest shadow-xl shadow-retail-blue/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleCheckout}
-                  disabled={isCheckoutProcessing}
+                  disabled={isCheckoutProcessing || (paymentType === 'LOYALTY' && !!customer && customer.loyaltyPoints < Math.ceil(total))}
                 >
                   {isCheckoutProcessing ? '...' : t('pos.complete_and_print')}
                 </button>
@@ -1082,14 +1109,20 @@ export function POS() {
   );
 }
 
-function PaymentOption({ active, onClick, icon: Icon, label }: any) {
+function PaymentOption({ active, onClick, icon: Icon, label, disabled, subtitle, insufficient }: any) {
   return (
-    <button 
+    <button
       onClick={onClick}
-      className={`h-24 flex flex-col items-center justify-center gap-2 border-2 transition-all ${active ? 'border-retail-blue bg-retail-blue/5 text-retail-blue' : 'border-slate-100 text-slate-400'}`}
+      disabled={disabled}
+      className={`h-24 flex flex-col items-center justify-center gap-1 border-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+        insufficient ? 'border-red-500 bg-red-50 text-red-500'
+        : active ? 'border-retail-blue bg-retail-blue/5 text-retail-blue'
+        : 'border-slate-100 text-slate-400'
+      }`}
     >
-      <Icon size={24} />
+      <Icon size={22} />
       <span className="font-black uppercase text-[10px] tracking-widest">{label}</span>
+      {subtitle && <span className="text-[9px] opacity-70">{subtitle}</span>}
     </button>
   );
 }

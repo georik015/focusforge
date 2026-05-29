@@ -11,9 +11,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'Список товаров пуст' });
   }
-  const validPaymentTypes = ['CASH', 'CARD'];
+  const validPaymentTypes = ['CASH', 'CARD', 'LOYALTY'];
   if (!validPaymentTypes.includes(paymentType)) {
     return res.status(400).json({ error: 'Неверный тип оплаты' });
+  }
+  if (paymentType === 'LOYALTY' && !req.body.customerId) {
+    return res.status(400).json({ error: 'Для оплаты баллами необходимо выбрать клиента' });
   }
   for (const item of items) {
     const qty = Number(item.quantity);
@@ -101,14 +104,29 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       });
 
       // 6. Loyalty Points Logic
-      if (customerId) {
+      if (paymentType === 'LOYALTY') {
+        // Pay entirely with loyalty points (1 point = 1 ₽)
+        const pointsNeeded = Math.ceil(finalAmount);
+        const cust = await tx.customer.findUnique({ where: { id: customerId! }, select: { loyaltyPoints: true } });
+        if (!cust || cust.loyaltyPoints < pointsNeeded) {
+          throw new Error(`Недостаточно баллов: нужно ${pointsNeeded}, доступно ${cust?.loyaltyPoints ?? 0}`);
+        }
+        await tx.customer.update({
+          where: { id: customerId! },
+          data: {
+            loyaltyPoints: { decrement: pointsNeeded },
+            totalSpent: { increment: finalAmount },
+          },
+        });
+      } else if (customerId) {
+        // Regular payment — earn points proportionally
         const pointsEarned = Math.floor(finalAmount);
         await tx.customer.update({
           where: { id: customerId },
-          data: { 
+          data: {
             loyaltyPoints: { increment: pointsEarned },
-            totalSpent: { increment: finalAmount }
-          }
+            totalSpent: { increment: finalAmount },
+          },
         });
       }
 

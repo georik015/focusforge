@@ -7,7 +7,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
+const getSecret = () => process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -29,7 +29,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
+      getSecret(),
       { expiresIn: '24h' }
     );
 
@@ -141,7 +141,7 @@ router.post('/register', async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
+      getSecret(),
       { expiresIn: '24h' }
     );
 

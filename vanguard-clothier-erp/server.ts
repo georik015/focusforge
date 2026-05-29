@@ -27,6 +27,18 @@ import { prisma } from "./src/lib/prisma";
 
 dotenv.config();
 
+// JWT_SECRET validation — must run after dotenv.config()
+if (!process.env.JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ FATAL: JWT_SECRET must be set in .env for production. Exiting.');
+    process.exit(1);
+  }
+  // In dev: generate a session-only random secret (tokens expire on restart)
+  const { randomBytes } = await import('node:crypto');
+  process.env.JWT_SECRET = randomBytes(32).toString('hex');
+  console.warn('⚠️  JWT_SECRET not set in .env — generated random session secret. Set JWT_SECRET in .env for persistent logins!');
+}
+
 // Rate Limiting Policy
 const limiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes

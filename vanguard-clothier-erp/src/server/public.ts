@@ -2,9 +2,10 @@ import { Router, Request } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
+import { sendOrderConfirmation } from './email';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
+const getSecret = () => process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ function authenticateCustomer(req: Request): string | null {
   const auth = req.headers.authorization;
   if (!auth?.startsWith('Bearer ')) return null;
   try {
-    const payload = jwt.verify(auth.slice(7), JWT_SECRET) as any;
+    const payload = jwt.verify(auth.slice(7), getSecret()) as any;
     if (payload.type !== 'CUSTOMER') return null;
     return payload.sub;
   } catch {
@@ -181,7 +182,7 @@ router.post('/auth/register', async (req, res) => {
       },
     });
 
-    const token = jwt.sign({ sub: customer.id, type: 'CUSTOMER' }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ sub: customer.id, type: 'CUSTOMER' }, getSecret(), { expiresIn: '30d' });
 
     res.status(201).json({
       token,
@@ -212,7 +213,7 @@ router.post('/auth/login', async (req, res) => {
     const valid = await bcrypt.compare(password, customer.passwordHash);
     if (!valid) return res.status(401).json({ error: 'Неверный пароль' });
 
-    const token = jwt.sign({ sub: customer.id, type: 'CUSTOMER' }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ sub: customer.id, type: 'CUSTOMER' }, getSecret(), { expiresIn: '30d' });
 
     res.json({
       token,
@@ -356,6 +357,15 @@ router.post('/orders', async (req, res) => {
       }
 
       return order;
+    });
+
+    // Fire-and-forget email confirmation
+    sendOrderConfirmation({
+      id: result.id,
+      guestName: name.trim(),
+      guestEmail: email?.trim() || null,
+      total: result.total,
+      items: result.items as any,
     });
 
     res.status(201).json({ orderId: result.id, total: result.total, status: result.status });
