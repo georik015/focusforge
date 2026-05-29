@@ -52,6 +52,9 @@ export function POS() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [pickerProduct, setPickerProduct] = useState<ProductVariation[] | null>(null);
+  const [pickerColor, setPickerColor] = useState('');
 
   // Customer search
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
@@ -67,7 +70,12 @@ export function POS() {
   const [returnSaleError, setReturnSaleError] = useState('');
   const [returnItemQtys, setReturnItemQtys] = useState<Record<string, number>>({});
   const [returnProcessing, setReturnProcessing] = useState(false);
+  const [isCheckoutProcessing, setIsCheckoutProcessing] = useState(false);
+  const [isShiftOpening, setIsShiftOpening] = useState(false);
   const [storeConfig, setStoreConfig] = useState<{ storeName?: string; storeAddress?: string; storePhone?: string }>({});
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [closingBalanceInput, setClosingBalanceInput] = useState('0');
+  const [isShiftClosing, setIsShiftClosing] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -81,6 +89,24 @@ export function POS() {
     () => debounce((value: string) => setDebouncedSearch(value), 100),
     []
   );
+
+  const groupedProducts = useMemo(() => {
+    const map = new Map<string, ProductVariation[]>();
+    products.forEach(v => {
+      if (!map.has(v.productId)) map.set(v.productId, []);
+      map.get(v.productId)!.push(v);
+    });
+    return Array.from(map.values());
+  }, [products]);
+
+  const handleProductCardClick = (group: ProductVariation[]) => {
+    const available = group.filter(v => v.stock > 0);
+    if (available.length === 0) return;
+    if (available.length === 1) { addToCart(available[0]); return; }
+    const colors = [...new Set(available.map(v => v.color))];
+    setPickerColor(colors[0]);
+    setPickerProduct(group);
+  };
 
   useEffect(() => {
     debouncedSetSearch(search);
@@ -167,6 +193,7 @@ export function POS() {
   };
 
   const processReturn = async () => {
+    if (!returnSale) return;
     const itemsToReturn = returnSale.items
       .filter((item: any) => (returnItemQtys[item.id] ?? 0) > 0)
       .map((item: any) => ({
@@ -219,28 +246,40 @@ export function POS() {
   };
 
   const handleOpenShift = async () => {
+    if (isShiftOpening) return;
+    setIsShiftOpening(true);
     try {
       const shift = await api.post('/shifts/open', { openingBalance: parseFloat(openingBalance) });
       setCurrentShift(shift);
       setShowShiftModal(false);
       searchInputRef.current?.focus();
     } catch (err) {
-      alert('Failed to open shift');
+      alert('Не удалось открыть смену. Попробуйте ещё раз.');
+    } finally {
+      setIsShiftOpening(false);
     }
   };
 
-  const handleCloseShift = async () => {
-    const balance = prompt(t('pos.enter_drawer_balance'));
-    if (balance === null) return;
+  const handleCloseShift = () => {
+    setClosingBalanceInput('0');
+    setShowCloseShiftModal(true);
+  };
+
+  const confirmCloseShift = async () => {
+    if (isShiftClosing) return;
+    setIsShiftClosing(true);
     try {
-      await api.post('/shifts/close', { 
-        closingBalance: parseFloat(balance),
-        notes: t('pos.shift_notes')
+      await api.post('/shifts/close', {
+        closingBalance: parseFloat(closingBalanceInput) || 0,
+        notes: t('pos.shift_notes'),
       });
       setCurrentShift(null);
+      setShowCloseShiftModal(false);
       setShowShiftModal(true);
     } catch (err) {
       alert(t('pos.error_close_shift'));
+    } finally {
+      setIsShiftClosing(false);
     }
   };
 
@@ -296,6 +335,8 @@ export function POS() {
   const total = Math.max(0, subtotal - discount);
 
   const handleCheckout = async () => {
+    if (isCheckoutProcessing) return;
+    setIsCheckoutProcessing(true);
     const saleData = {
       items: cart.map(item => ({
         variationId: item.variation.id,
@@ -320,6 +361,8 @@ export function POS() {
       setPendingSyncCount(prev => prev + 1);
       handlePrint();
       completeSale();
+    } finally {
+      setIsCheckoutProcessing(false);
     }
   };
 
@@ -347,6 +390,7 @@ export function POS() {
           storeName={storeConfig.storeName}
           storeAddress={storeConfig.storeAddress}
           storePhone={storeConfig.storePhone}
+          cashierName={currentShift?.user?.name}
         />
       </div>
 
@@ -398,100 +442,192 @@ export function POS() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Inventory Selection */}
-        <div className="flex-1 flex flex-col p-2 space-y-2 overflow-hidden">
-          <div className="relative group shrink-0">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
-            <Input 
-              ref={searchInputRef}
-              placeholder={t('pos.search_placeholder')} 
-              className="h-10 pl-10 bg-white border-retail-border rounded-none text-sm font-black uppercase placeholder:opacity-30 focus:ring-retail-blue"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-100">
+          {/* Search bar */}
+          <div className="px-3 pt-3 pb-2 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                ref={searchInputRef}
+                placeholder={t('pos.search_placeholder')}
+                className="w-full h-12 pl-10 pr-10 bg-white border border-slate-300 text-sm font-semibold focus:outline-none focus:border-retail-blue focus:ring-1 focus:ring-retail-blue"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button
+                  onClick={() => { setSearch(''); searchInputRef.current?.focus(); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 overflow-y-auto pr-1 pb-2 custom-scrollbar">
-            {products.filter(p => 
-              p.product?.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
-              p.sku.toLowerCase().includes(debouncedSearch.toLowerCase())
-            ).map((product) => (
+          {/* Category filter tabs */}
+          <div className="px-3 pb-2 shrink-0 flex gap-1.5 overflow-x-auto no-scrollbar">
+            {['', ...Array.from(new Set(products.map(p => p.product?.category?.name).filter(Boolean)))].map((cat) => (
               <button
-                key={product.id}
-                onClick={() => addToCart(product)}
-                className="bg-white p-3 border border-retail-border hover:border-retail-blue transition-all text-left flex flex-col h-fit group relative"
+                key={cat || 'all'}
+                onClick={() => setCategoryFilter(cat as string)}
+                className={`shrink-0 px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-all ${
+                  categoryFilter === cat
+                    ? 'bg-retail-blue text-white'
+                    : 'bg-white text-slate-500 hover:bg-slate-200 border border-slate-200'
+                }`}
               >
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-1 pt-1 border-t border-slate-50">{product.sku}</div>
-                <div className="font-bold text-slate-800 text-[11px] leading-tight flex-1 uppercase h-8 overflow-hidden">{product.product?.name}</div>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="font-black text-retail-blue text-xs tracking-tighter">₽{product.salePrice.toLocaleString()}</div>
-                  <div className="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 text-slate-500 uppercase">
-                    STK: {product.stock}
-                  </div>
-                </div>
+                {cat || 'Все'}
               </button>
             ))}
           </div>
+
+          {/* Product grid — one card per product */}
+          <div className="flex-1 overflow-y-auto px-3 pb-3 custom-scrollbar">
+            {(() => {
+              const filteredGroups = groupedProducts.filter(group => {
+                const p = group[0].product;
+                const matchSearch =
+                  p?.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                  group.some(v => v.sku.toLowerCase().includes(debouncedSearch.toLowerCase()));
+                const matchCat = !categoryFilter || p?.category?.name === categoryFilter;
+                return matchSearch && matchCat;
+              });
+
+              if (filteredGroups.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+                    <Search size={32} className="mb-2 opacity-30" />
+                    <p className="text-sm font-bold uppercase">Товары не найдены</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
+                  {filteredGroups.map((group) => {
+                    const product = group[0].product;
+                    const totalStock = group.reduce((s, v) => s + v.stock, 0);
+                    const minPrice = Math.min(...group.map(v => v.salePrice));
+                    const maxPrice = Math.max(...group.map(v => v.salePrice));
+                    const uniqueSizes = [...new Set(group.map(v => v.size))].filter(Boolean);
+                    const uniqueColors = [...new Set(group.map(v => v.color))].filter(Boolean);
+                    const outOfStock = totalStock === 0;
+                    const lowStock = totalStock > 0 && totalStock <= 5;
+
+                    return (
+                      <button
+                        key={group[0].productId}
+                        onClick={() => handleProductCardClick(group)}
+                        disabled={outOfStock}
+                        className={`bg-white border-2 p-3 text-left flex flex-col gap-1 transition-all active:scale-95 ${
+                          outOfStock
+                            ? 'border-slate-100 opacity-40 cursor-not-allowed'
+                            : 'border-slate-200 hover:border-retail-blue hover:shadow-md cursor-pointer'
+                        }`}
+                      >
+                        <p className="text-sm font-bold text-slate-800 leading-snug line-clamp-2 min-h-[40px]">
+                          {product?.name}
+                        </p>
+
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {uniqueSizes.slice(0, 5).map(s => (
+                            <span key={s} className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 font-mono">{s}</span>
+                          ))}
+                          {uniqueSizes.length > 5 && (
+                            <span className="text-[10px] text-slate-400">+{uniqueSizes.length - 5}</span>
+                          )}
+                        </div>
+
+                        {uniqueColors.length > 0 && (
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {uniqueColors.slice(0, 3).join(', ')}{uniqueColors.length > 3 ? ` +${uniqueColors.length - 3}` : ''}
+                          </p>
+                        )}
+
+                        <div className="mt-auto pt-2 flex items-center justify-between">
+                          <span className="text-base font-black text-retail-blue">
+                            {minPrice === maxPrice
+                              ? `₽${minPrice.toLocaleString()}`
+                              : `₽${minPrice.toLocaleString()}+`}
+                          </span>
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            outOfStock ? 'bg-red-100 text-red-500'
+                            : lowStock ? 'bg-amber-100 text-amber-600'
+                            : 'bg-emerald-100 text-emerald-600'
+                          }`}>
+                            {outOfStock ? 'Нет' : `${totalStock} шт`}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
-        {/* Dense Cart Checkout */}
-        <div className="w-[480px] bg-white border-l border-retail-border flex flex-col z-20 overflow-hidden">
-          <div className="h-10 px-4 bg-slate-100 border-b border-retail-border flex items-center justify-between shrink-0 text-[10px] font-black uppercase tracking-widest text-slate-500">
-            <div className="flex items-center gap-2">
-              <ShoppingCart size={14} /> {t('pos.active_basket')}
+        {/* Cart Panel */}
+        <div className="w-[420px] bg-white border-l border-retail-border flex flex-col z-20 overflow-hidden">
+          <div className="h-11 px-4 bg-slate-900 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2 text-white font-bold text-sm">
+              <ShoppingCart size={16} /> {t('pos.active_basket')}
             </div>
-            <span>{cart.length} {t('pos.units')}</span>
+            <span className="text-xs font-black text-slate-400 uppercase">{cart.length} {t('pos.units')}</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <table className="retail-table w-full">
-              <thead className="sticky top-0 bg-white z-10">
-                <tr>
-                  <th className="text-left py-2 font-black uppercase">{t('inventory.product')}</th>
-                  <th className="text-center py-2 font-black uppercase">{t('receipt.qty')}</th>
-                  <th className="text-right py-2 font-black uppercase">{t('common.total')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {cart.map((item) => (
-                  <tr key={item.tempId} className="hover:bg-slate-50 group">
-                    <td className="py-2 px-3">
-                      <div className="text-[10px] font-black text-slate-900 leading-none uppercase">{item.variation.product?.name}</div>
-                      <div className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{item.variation.sku} // {item.variation.size}</div>
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                         <button onClick={() => updateQuantity(item.tempId, -1)} className="text-slate-300 hover:text-red-500">
-                            <Minus size={12} />
-                         </button>
-                         <span className="font-black text-xs text-retail-blue">{item.quantity}</span>
-                         <button onClick={() => updateQuantity(item.tempId, 1)} className="text-slate-300 hover:text-retail-blue">
-                            <Plus size={12} />
-                         </button>
-                      </div>
-                    </td>
-                    <td className="py-2 px-3 text-right font-black text-slate-900 text-[11px]">
-                      <div className="flex items-center justify-end gap-2">
-                        <span>₽{(item.variation.salePrice * item.quantity).toLocaleString()}</span>
-                        <button
-                          onClick={() => removeFromCart(item.tempId)}
-                          className="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {cart.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center opacity-10 grayscale">
-                 <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-2">
-                    <History size={32} />
-                 </div>
-                 <p className="text-[10px] font-black uppercase tracking-widest">{t('pos.idling')}</p>
+          <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100">
+            {cart.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-3">
+                <History size={40} />
+                <p className="text-sm font-bold uppercase tracking-widest">{t('pos.idling')}</p>
               </div>
+            ) : (
+              cart.map((item) => (
+                <div key={item.tempId} className="flex items-center gap-3 px-3 py-3 hover:bg-slate-50 group">
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 leading-tight truncate">{item.variation.product?.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {[item.variation.sku, item.variation.size, item.variation.color].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+
+                  {/* Qty controls */}
+                  <div className="flex items-center gap-1 border border-slate-200 bg-white">
+                    <button
+                      onClick={() => updateQuantity(item.tempId, -1)}
+                      className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <span className="w-7 text-center text-sm font-black text-retail-blue">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.tempId, 1)}
+                      className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-retail-blue hover:bg-blue-50 transition-colors"
+                    >
+                      <Plus size={13} />
+                    </button>
+                  </div>
+
+                  {/* Price */}
+                  <div className="text-right w-24 shrink-0">
+                    <p className="text-sm font-black text-slate-900">₽{(item.variation.salePrice * item.quantity).toLocaleString()}</p>
+                    {item.quantity > 1 && (
+                      <p className="text-[10px] text-slate-400">×₽{item.variation.salePrice.toLocaleString()}</p>
+                    )}
+                  </div>
+
+                  {/* Remove */}
+                  <button
+                    onClick={() => removeFromCart(item.tempId)}
+                    className="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              ))
             )}
           </div>
 
@@ -583,8 +719,9 @@ export function POS() {
                 <button 
                   className="flex-[2] h-14 bg-retail-blue text-white font-black uppercase text-sm tracking-widest shadow-xl shadow-retail-blue/20"
                   onClick={handleCheckout}
+                  disabled={isCheckoutProcessing}
                 >
-                  {t('pos.complete_and_print')}
+                  {isCheckoutProcessing ? '...' : t('pos.complete_and_print')}
                 </button>
               </div>
             </div>
@@ -741,6 +878,107 @@ export function POS() {
         </div>
       )}
 
+      {/* ── Variation Picker Modal ───────────────────────────────── */}
+      {pickerProduct && (() => {
+        const product = pickerProduct[0].product;
+        const uniqueColors = [...new Set(pickerProduct.map(v => v.color).filter(Boolean))];
+        const sizesForColor = pickerProduct.filter(v => v.color === pickerColor || !pickerColor);
+
+        return (
+          <div
+            className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-slate-900/70 backdrop-blur-sm"
+            onClick={() => setPickerProduct(null)}
+          >
+            <div
+              className="bg-white w-full max-w-lg shadow-2xl border border-slate-200"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <div>
+                  <p className="font-black text-slate-900 text-base leading-tight">{product?.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{product?.category?.name} · Выберите размер</p>
+                </div>
+                <button onClick={() => setPickerProduct(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Color selector */}
+                {uniqueColors.length > 1 && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Цвет</p>
+                    <div className="flex flex-wrap gap-2">
+                      {uniqueColors.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => setPickerColor(color)}
+                          className={`px-3 py-1.5 text-sm font-semibold border-2 transition-all ${
+                            pickerColor === color
+                              ? 'border-retail-blue bg-retail-blue text-white'
+                              : 'border-slate-200 text-slate-700 hover:border-retail-blue'
+                          }`}
+                        >
+                          {color}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Size grid */}
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Размер</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {sizesForColor.map(v => {
+                      const outOfStock = v.stock === 0;
+                      const lowStock = v.stock > 0 && v.stock <= 3;
+                      return (
+                        <button
+                          key={v.id}
+                          disabled={outOfStock}
+                          onClick={() => { addToCart(v); setPickerProduct(null); }}
+                          className={`flex flex-col items-center justify-center py-3 border-2 transition-all font-bold text-sm ${
+                            outOfStock
+                              ? 'border-slate-100 text-slate-300 cursor-not-allowed bg-slate-50'
+                              : 'border-slate-200 text-slate-800 hover:border-retail-blue hover:bg-blue-50 active:scale-95'
+                          }`}
+                        >
+                          <span className="text-base">{v.size || '—'}</span>
+                          <span className={`text-[10px] font-bold mt-0.5 ${
+                            outOfStock ? 'text-red-400'
+                            : lowStock ? 'text-amber-500'
+                            : 'text-emerald-500'
+                          }`}>
+                            {outOfStock ? 'нет' : `${v.stock} шт`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Price */}
+                {(() => {
+                  const availPrices = sizesForColor.filter(v => v.stock > 0).map(v => v.salePrice);
+                  const pMin = availPrices.length > 0 ? Math.min(...availPrices) : (sizesForColor[0]?.salePrice ?? 0);
+                  const pMax = availPrices.length > 0 ? Math.max(...availPrices) : pMin;
+                  return (
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Цена</span>
+                      <span className="text-xl font-black text-retail-blue">
+                        {pMin === pMax ? `₽${pMin.toLocaleString()}` : `от ₽${pMin.toLocaleString()}`}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <AnimatePresence>
         {showShiftModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-retail-dark/98 backdrop-blur-xl">
@@ -762,12 +1000,54 @@ export function POS() {
                    className="h-16 text-3xl font-black text-center bg-slate-50 border-retail-border rounded-none"
                    placeholder="0.00"
                  />
-                 <button 
+                 <button
                    onClick={handleOpenShift}
-                   className="w-full h-16 bg-retail-blue text-white font-black text-lg uppercase tracking-widest shadow-xl"
+                   disabled={isShiftOpening}
+                   className="w-full h-16 bg-retail-blue text-white font-black text-lg uppercase tracking-widest shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
                  >
                    {t('pos.confirm_shift')}
                  </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCloseShiftModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-retail-dark/98 backdrop-blur-xl">
+            <div className="bg-white max-w-md w-full border border-retail-border p-12 text-center space-y-8 shadow-2xl">
+              <div className="w-16 h-16 bg-red-600 text-white flex items-center justify-center mx-auto mb-4">
+                <Lock size={32} />
+              </div>
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{t('pos.close_shift')}</h2>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2">Введите фактический остаток наличных в кассе</p>
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-left">{t('pos.closing_balance')} (RUB)</label>
+                <input
+                  type="number"
+                  value={closingBalanceInput}
+                  onChange={(e) => setClosingBalanceInput(e.target.value)}
+                  className="w-full h-16 text-3xl font-black text-center bg-slate-50 border border-slate-200 outline-none focus:border-retail-blue"
+                  placeholder="0.00"
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCloseShiftModal(false)}
+                    className="flex-1 h-14 border border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-50"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    onClick={confirmCloseShift}
+                    disabled={isShiftClosing}
+                    className="flex-1 h-14 bg-red-600 text-white font-black text-sm uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed hover:bg-red-700"
+                  >
+                    {t('pos.confirm_close')}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

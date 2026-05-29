@@ -64,20 +64,27 @@ export default function ProductPage({ productId, onBack, onNavigate }: ProductPa
   const addItem = useCartStore(s => s.addItem);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setSelectedColor(null);
     setSelectedSize(null);
     setGalleryIndex(0);
-    fetch(`/api/public/products/${productId}`)
-      .then(r => r.json())
-      .then(data => { setProduct(data); })
-      .catch(() => setProduct(null))
+    fetch(`/api/public/products/${productId}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(r.status.toString())))
+      .then(data => {
+        setProduct(data);
+        const uniqueColors = [...new Set((data.variations ?? []).map((v: any) => v.color))];
+        if (uniqueColors.length === 1) setSelectedColor(uniqueColors[0] as string);
+      })
+      .catch(err => { if (err.name !== 'AbortError') setProduct(null); })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [productId]);
 
   const allImages = React.useMemo(() => {
     if (!product) return [];
-    const extra = product.extraImages ? JSON.parse(product.extraImages) : [];
+    let extra: string[] = [];
+    try { extra = product.extraImages ? JSON.parse(product.extraImages) : []; } catch { /* ignore malformed JSON */ }
     return [product.imageUrl, ...extra].filter(Boolean) as string[];
   }, [product]);
 
@@ -116,8 +123,9 @@ export default function ProductPage({ productId, onBack, onNavigate }: ProductPa
 
   const selectedVariation = getVariation(selectedColor, selectedSize);
   const discount = product?.discount ?? 0;
-  // Price must not change by size — use the min variation price as the product price
-  const basePrice = product && product.variations.length > 0
+  const basePrice = selectedVariation
+    ? selectedVariation.salePrice
+    : product?.variations?.length
     ? Math.min(...product.variations.map(v => v.salePrice))
     : 0;
   const finalPrice = discount > 0 ? Math.round(basePrice * (1 - discount / 100)) : basePrice;
@@ -135,9 +143,11 @@ export default function ProductPage({ productId, onBack, onNavigate }: ProductPa
       price: finalPrice,
       originalPrice: discount > 0 ? basePrice : undefined,
       quantity: 1,
+      stock: selectedVariation.stock,
     });
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    const t = setTimeout(() => setAdded(false), 2000);
+    return () => clearTimeout(t);
   };
 
   const handleShare = async () => {

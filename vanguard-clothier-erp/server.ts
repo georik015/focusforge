@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
@@ -64,8 +65,17 @@ async function seed() {
 async function startServer() {
   await seed();
   const app = express();
+
+  app.use(cors({
+    origin: process.env.APP_URL || 'http://localhost:3000',
+    credentials: true,
+  }));
   app.use(express.json());
-  
+
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('⚠️  GEMINI_API_KEY not set — /api/intelligence будет возвращать 503');
+  }
+
   // Apply global rate limiting
   app.use('/api/', limiter);
 

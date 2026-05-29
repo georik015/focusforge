@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   DollarSign,
   ShoppingBag,
@@ -9,6 +9,7 @@ import {
   Printer,
   Package,
   Download,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { api } from '../lib/api';
@@ -19,6 +20,28 @@ import { cn } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
+const PERIOD_PRESETS = [
+  { label: 'Сегодня',   value: 'today' },
+  { label: 'Неделя',    value: 'week' },
+  { label: 'Месяц',     value: 'month' },
+  { label: 'Всё время', value: 'all' },
+];
+
+function getPeriodDates(preset: string): { dateFrom: string; dateTo: string } {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  if (preset === 'today') return { dateFrom: today, dateTo: today };
+  if (preset === 'week') {
+    const d = new Date(now); d.setDate(d.getDate() - 7);
+    return { dateFrom: d.toISOString().split('T')[0], dateTo: today };
+  }
+  if (preset === 'month') {
+    const d = new Date(now); d.setDate(d.getDate() - 30);
+    return { dateFrom: d.toISOString().split('T')[0], dateTo: today };
+  }
+  return { dateFrom: '', dateTo: '' };
+}
+
 export function Reports() {
   const { t } = useTranslation();
   const [reportStats, setReportStats] = useState<any>(null);
@@ -26,16 +49,30 @@ export function Reports() {
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [shiftSales, setShiftSales] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [period, setPeriod] = useState('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const reportRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
+    setIsLoading(true);
     try {
+      let dateFrom = '';
+      let dateTo = '';
+      if (period === 'custom') {
+        dateFrom = customFrom;
+        dateTo = customTo;
+      } else {
+        const p = getPeriodDates(period);
+        dateFrom = p.dateFrom;
+        dateTo = p.dateTo;
+      }
+      const params = new URLSearchParams();
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
+
       const [stats, shiftsData] = await Promise.all([
-        api.get<any>('/analytics/reports'),
+        api.get<any>(`/analytics/reports?${params}`),
         api.get<any[]>('/shifts')
       ]);
       setReportStats(stats);
@@ -45,7 +82,11 @@ export function Reports() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [period, customFrom, customTo]);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   const handleSelectShift = async (shift: any) => {
     setSelectedShift(shift);
@@ -121,25 +162,59 @@ export function Reports() {
 
   return (
     <div className="space-y-4 pb-12 retail-density animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white border border-retail-border p-4">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tighter uppercase">Центр аналитики</h2>
-          <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-0.5">Оперативная отчетность и аудит терминалов</p>
+      <div className="flex flex-col gap-3 bg-white border border-retail-border p-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-900 tracking-tighter uppercase">Центр аналитики</h2>
+            <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-0.5">Оперативная отчетность и аудит терминалов</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={fetchInitialData}
+              variant="outline"
+              className="h-10 px-4 rounded-none border-retail-border font-black text-[10px] uppercase tracking-widest gap-2"
+            >
+              <RefreshCw size={14} /> ОБНОВИТЬ
+            </Button>
+            <Button
+              onClick={handleExportExcel}
+              className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white px-6 rounded-none font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+            >
+              <Download size={14} /> ЭКСПОРТ EXCEL
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={fetchInitialData}
-            variant="outline" 
-            className="h-10 px-4 rounded-none border-retail-border font-black text-[10px] uppercase tracking-widest gap-2"
-          >
-            <RefreshCw size={14} /> ОБНОВИТЬ ДАННЫЕ
-          </Button>
-          <Button
-            onClick={handleExportExcel}
-            className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white px-6 rounded-none font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
-          >
-            <Download size={14} /> ЭКСПОРТ EXCEL
-          </Button>
+
+        {/* Period filter */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-retail-border">
+          <Calendar size={14} className="text-slate-400 shrink-0" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Период:</span>
+          <div className="flex gap-1 flex-wrap">
+            {PERIOD_PRESETS.map(p => (
+              <button
+                key={p.value}
+                onClick={() => setPeriod(p.value)}
+                className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors ${period === p.value ? 'bg-retail-blue text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {p.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setPeriod('custom')}
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors ${period === 'custom' ? 'bg-retail-blue text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              Свой период
+            </button>
+          </div>
+          {period === 'custom' && (
+            <div className="flex items-center gap-2 ml-2">
+              <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
+                className="border border-retail-border px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none focus:border-retail-blue" />
+              <span className="text-slate-400 text-xs">—</span>
+              <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
+                className="border border-retail-border px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none focus:border-retail-blue" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -147,25 +222,25 @@ export function Reports() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard 
           title="Общая выручка" 
-          value={`${currency}${reportStats?.revenue.toLocaleString()}`} 
+          value={`${currency}${(reportStats?.revenue ?? 0).toLocaleString()}`}
           trend="ПОДТВЕРЖДЕНО" 
           icon={DollarSign} 
         />
-        <KPICard 
-          title="Кол-во транзакций" 
-          value={reportStats?.salesCount.toLocaleString()} 
-          trend="ЗА ВЕСЬ ПЕРИОД" 
-          icon={Target} 
+        <KPICard
+          title="Кол-во транзакций"
+          value={(reportStats?.salesCount ?? 0).toLocaleString()}
+          trend={period === 'today' ? 'СЕГОДНЯ' : period === 'week' ? 'ЗА 7 ДНЕЙ' : period === 'month' ? 'ЗА 30 ДНЕЙ' : 'ЗА ПЕРИОД'}
+          icon={Target}
         />
         <KPICard 
           title="Средний чек" 
-          value={`${currency}${reportStats?.avgTicket.toLocaleString()}`} 
+          value={`${currency}${(reportStats?.avgTicket ?? 0).toLocaleString()}`} 
           trend="СРЕДНЕЕ ЗНАЧ." 
           icon={ShoppingBag} 
         />
         <KPICard 
           title="База клиентов" 
-          value={reportStats?.customerCount.toLocaleString()} 
+          value={(reportStats?.customerCount ?? 0).toLocaleString()}
           trend="ЗАРЕГИСТРИРОВАНО" 
           icon={Users} 
         />
@@ -180,7 +255,7 @@ export function Reports() {
             <Flame size={16} className="text-orange-500" />
           </div>
           <div className="flex-1 overflow-y-auto">
-             {reportStats?.topSKUs.length > 0 ? (
+             {(reportStats?.topSKUs?.length ?? 0) > 0 ? (
                <div className="divide-y divide-retail-border">
                   {reportStats.topSKUs.map((item: any, idx: number) => (
                     <div key={item.sku} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">

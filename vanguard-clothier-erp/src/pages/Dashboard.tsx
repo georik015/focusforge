@@ -21,6 +21,7 @@ export function Dashboard() {
   const { t } = useTranslation();
   const [stats, setStats] = useState<any>(null);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [dashError, setDashError] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -28,7 +29,7 @@ export function Dashboard() {
         const data = await api.get('/analytics/dashboard');
         setStats(data);
       } catch (err) {
-        console.error('Failed to fetch dashboard data');
+        setDashError(true);
       }
     };
     const fetchPendingOrders = async () => {
@@ -40,6 +41,16 @@ export function Dashboard() {
     fetchStats();
     fetchPendingOrders();
   }, []);
+
+  if (dashError) return (
+    <div className="p-8 flex flex-col items-center justify-center gap-4 text-center">
+      <AlertTriangle size={36} className="text-red-400" />
+      <p className="text-slate-600 font-semibold">Не удалось загрузить данные дашборда</p>
+      <button onClick={() => { setDashError(false); setStats(null); window.location.reload(); }} className="px-4 py-2 bg-slate-900 text-white text-sm font-medium hover:bg-slate-700 transition-colors">
+        Обновить страницу
+      </button>
+    </div>
+  );
 
   if (!stats) return <div className="p-8 text-slate-400 font-bold animate-pulse uppercase text-xs tracking-widest italic">ЗАГРУЗКА ДАННЫХ ПРЕДПРИЯТИЯ...</div>;
 
@@ -55,7 +66,7 @@ export function Dashboard() {
         </div>
         <div className="h-4 w-[1px] bg-white/20" />
         <div className="flex-1 text-[10px] font-bold uppercase tracking-widest animate-marquee whitespace-nowrap opacity-60">
-          ФИЛИАЛ: ЦЕНТРАЛЬНЫЙ // СТАТУС: {stats.dailySalesCount > 0 ? 'АКТИВЕН' : 'ОЖИДАНИЕ'} // СИНХРОНИЗАЦИЯ: ВЫПОЛНЕНА // ПРЕДУПРЕЖДЕНИЯ: {stats.lowStockCount} // ВЫРУЧКА 24Ч: ₽{stats.dailyRevenue.toLocaleString()} // КАССА: СТАБИЛЬНО
+          ФИЛИАЛ: ЦЕНТРАЛЬНЫЙ // СТАТУС: {(stats.dailySalesCount ?? 0) > 0 ? 'АКТИВЕН' : 'ОЖИДАНИЕ'} // СИНХРОНИЗАЦИЯ: ВЫПОЛНЕНА // ПРЕДУПРЕЖДЕНИЯ: {stats.lowStockCount ?? 0} // ВЫРУЧКА 24Ч: ₽{(stats.dailyRevenue ?? 0).toLocaleString()} // КАССА: СТАБИЛЬНО
         </div>
       </div>
 
@@ -63,7 +74,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title={t('dashboard.revenue')} 
-          value={`${currency}${stats.dailyRevenue.toLocaleString()}`} 
+          value={`${currency}${(stats.dailyRevenue ?? 0).toLocaleString()}`}
           trend="ОНЛАЙН ПРОВЕРКА" 
           isUp={stats.dailyRevenue > 0} 
           icon={<TrendingUp size={20} />} 
@@ -71,7 +82,7 @@ export function Dashboard() {
         />
         <StatCard 
           title={t('dashboard.sales')} 
-          value={stats.dailySalesCount.toString()} 
+          value={(stats.dailySalesCount ?? 0).toString()}
           trend="ОПЕРАЦИИ В БАЗЕ" 
           isUp={stats.dailySalesCount > 0} 
           icon={<Users size={20} />} 
@@ -153,7 +164,7 @@ export function Dashboard() {
                         <span className="text-[8px] font-bold text-slate-400">{new Date(log.createdAt).toLocaleTimeString()}</span>
                       </div>
                       <p className="text-[10px] font-bold text-slate-900 leading-tight">
-                        {log.user.name}: {log.details}
+                        {log.user?.name ?? 'Система'}: {log.details}
                       </p>
                     </div>
                   ))}

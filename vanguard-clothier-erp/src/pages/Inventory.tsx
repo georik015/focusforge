@@ -58,6 +58,12 @@ export function Inventory() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  // Variation quick-edit modal
+  const [editingVariation, setEditingVariation] = useState<ProductVariation | null>(null);
+  const [varForm, setVarForm] = useState({ salePrice: '', purchasePrice: '', stock: '', lowStockThreshold: '' });
+  const [varSaving, setVarSaving] = useState(false);
+  const [varError, setVarError] = useState('');
+
   // Form state
   const [form, setForm] = useState({
     name: '',
@@ -88,6 +94,37 @@ export function Inventory() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditVariation = (v: ProductVariation) => {
+    setEditingVariation(v);
+    setVarForm({
+      salePrice: String(v.salePrice),
+      purchasePrice: String(v.purchasePrice),
+      stock: String(v.stock),
+      lowStockThreshold: String(v.lowStockThreshold),
+    });
+    setVarError('');
+  };
+
+  const saveVariation = async () => {
+    if (!editingVariation) return;
+    setVarSaving(true);
+    setVarError('');
+    try {
+      await api.patch(`/products/variation/${editingVariation.id}`, {
+        salePrice: Number(varForm.salePrice),
+        purchasePrice: Number(varForm.purchasePrice),
+        stock: Number(varForm.stock),
+        lowStockThreshold: Number(varForm.lowStockThreshold),
+      });
+      setEditingVariation(null);
+      await fetchAll();
+    } catch (err: any) {
+      setVarError(err?.message || 'Ошибка сохранения');
+    } finally {
+      setVarSaving(false);
     }
   };
 
@@ -147,8 +184,8 @@ export function Inventory() {
         setBrands(prev => [...prev, br]);
       }
 
-      if (!categoryId) return setSaveError('Выберите или создайте категорию');
-      if (!brandId) return setSaveError('Выберите или создайте бренд');
+      if (!categoryId) { setSaving(false); setSaveError('Выберите или создайте категорию'); return; }
+      if (!brandId) { setSaving(false); setSaveError('Выберите или создайте бренд'); return; }
 
       if (editingProduct) {
         const updated = await api.put<Product>(`/products/${editingProduct.id}`, {
@@ -198,7 +235,7 @@ export function Inventory() {
       await api.delete(`/products/${id}`);
       setProducts(prev => prev.filter(p => p.id !== id));
     } catch {
-      console.error('Failed to delete product');
+      alert('Не удалось удалить товар. Возможно, он используется в продажах.');
     } finally {
       setDeleteConfirm(null);
     }
@@ -207,6 +244,7 @@ export function Inventory() {
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.variations.some(v => v.sku.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -280,6 +318,7 @@ export function Inventory() {
                     density={density}
                     onEdit={() => openEdit(product)}
                     onDelete={() => setDeleteConfirm(product.id)}
+                    onEditVariation={openEditVariation}
                   />
                 ))
               )}
@@ -462,8 +501,30 @@ export function Inventory() {
               )}
 
               {editingProduct && (
-                <div className="bg-amber-50 border border-amber-200 px-4 py-3 text-[10px] font-bold text-amber-700 uppercase tracking-widest">
-                  Для изменения вариаций (цены, остатка) используйте раздел Склад
+                <div className="bg-slate-50 border border-retail-border px-4 py-3">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Редактирование вариаций</p>
+                  <div className="space-y-1">
+                    {editingProduct.variations.map((v) => (
+                      <div key={v.id} className="flex items-center justify-between bg-white border border-retail-border px-3 py-2">
+                        <div className="flex items-center gap-3 text-[10px] font-mono text-slate-700">
+                          <span className="font-black">{v.sku}</span>
+                          <span className="bg-slate-100 px-1">{v.size}</span>
+                          <span className="bg-slate-100 px-1">{v.color}</span>
+                          <span className="text-retail-blue font-black">₽{v.salePrice}</span>
+                          <span className={cn('font-black', v.stock <= v.lowStockThreshold ? 'text-red-600' : 'text-emerald-600')}>
+                            {v.stock} шт.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openEditVariation(v)}
+                          className="flex items-center gap-1 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-retail-blue border border-retail-blue hover:bg-retail-blue hover:text-white transition-colors"
+                        >
+                          <Edit size={10} /> ИЗМЕНИТЬ
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -491,6 +552,56 @@ export function Inventory() {
           </div>
         </div>
       )}
+
+      {/* Variation quick-edit modal */}
+      {editingVariation && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white border border-retail-border w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between p-4 bg-slate-900 text-white">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest">Редактирование вариации</div>
+                <div className="text-slate-400 text-[9px] font-mono mt-0.5">{editingVariation.sku} / {editingVariation.size} / {editingVariation.color}</div>
+              </div>
+              <button onClick={() => setEditingVariation(null)} className="p-1 hover:text-slate-300"><X size={16} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {[
+                { label: 'Цена продажи (₽)', key: 'salePrice' },
+                { label: 'Цена закупки (₽)', key: 'purchasePrice' },
+                { label: 'Остаток (шт.)', key: 'stock' },
+                { label: 'Порог тревоги (шт.)', key: 'lowStockThreshold' },
+              ].map(field => (
+                <div key={field.key}>
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">{field.label}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={varForm[field.key as keyof typeof varForm]}
+                    onChange={e => setVarForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                    className="w-full border border-retail-border px-3 py-2 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:border-retail-blue"
+                  />
+                </div>
+              ))}
+              {varError && <p className="text-[10px] text-red-600 font-bold">{varError}</p>}
+            </div>
+            <div className="flex gap-2 p-4 border-t border-retail-border bg-slate-50">
+              <button
+                onClick={saveVariation}
+                disabled={varSaving}
+                className="flex-1 h-10 bg-retail-blue text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1 disabled:opacity-60"
+              >
+                <Check size={14} /> {varSaving ? 'СОХРАНЕНИЕ...' : 'СОХРАНИТЬ'}
+              </button>
+              <button
+                onClick={() => setEditingVariation(null)}
+                className="px-4 h-10 bg-white border border-retail-border text-slate-500 text-[10px] font-black uppercase tracking-widest"
+              >
+                ОТМЕНА
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -500,11 +611,13 @@ function ProductRows({
   density,
   onEdit,
   onDelete,
+  onEditVariation,
 }: {
   product: Product;
   density: 'compact' | 'standard';
   onEdit: () => void;
   onDelete: () => void;
+  onEditVariation: (v: ProductVariation) => void;
 }) {
   const { t } = useTranslation();
   const currency = t('common.ru_currency', '₽');
@@ -553,8 +666,11 @@ function ProductRows({
           </td>
           <td className="text-right pr-4">
             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-              <button onClick={onEdit} className="p-1 hover:text-retail-blue transition-colors" title="Редактировать">
+              <button onClick={() => onEditVariation(v)} className="p-1 hover:text-emerald-600 transition-colors" title="Изменить цену/остаток">
                 <Edit size={14} />
+              </button>
+              <button onClick={onEdit} className="p-1 hover:text-retail-blue transition-colors" title="Редактировать товар">
+                <Package2 size={14} />
               </button>
               <button onClick={onDelete} className="p-1 hover:text-red-500 transition-colors" title="Удалить">
                 <Trash2 size={14} />

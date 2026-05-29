@@ -17,7 +17,7 @@ router.get('/stats', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKEEPER'])
     });
     res.json(result);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -27,8 +27,8 @@ router.get('/', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKEEPER']), asy
     const where: Record<string, unknown> = {};
     if (status && status !== 'ALL') where.status = String(status);
 
-    const take = parseInt(String(limit));
-    const skip = (parseInt(String(page)) - 1) * take;
+    const take = Math.min(100, Math.max(1, parseInt(String(limit)) || 30));
+    const skip = (Math.max(1, parseInt(String(page)) || 1) - 1) * take;
 
     const [orders, total] = await Promise.all([
       prisma.storefrontOrder.findMany({
@@ -52,7 +52,7 @@ router.get('/', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKEEPER']), asy
 
     res.json({ orders, total, page: parseInt(String(page)), limit: take });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -74,7 +74,7 @@ router.get('/:id', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKEEPER']), 
     if (!order) return res.status(404).json({ error: 'Order not found' });
     res.json(order);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -104,7 +104,53 @@ router.patch('/:id/status', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKE
 
     res.json(updated);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/:id/cancel', authenticate, authorize(['ADMIN', 'SELLER', 'STOREKEEPER']), async (req: AuthRequest, res) => {
+  try {
+    const order = await prisma.storefrontOrder.findUnique({
+      where: { id: req.params.id },
+      include: { items: { include: { variation: true } } },
+    });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status === 'CANCELLED') return res.status(400).json({ error: 'Заказ уже отменён' });
+    if (order.status === 'DELIVERED') return res.status(400).json({ error: 'Нельзя отменить доставленный заказ' });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.storefrontOrder.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
+
+      // Восстанавливаем сток только если заказ был подтверждён (CONFIRMED/SHIPPED)
+      if (order.status === 'CONFIRMED' || order.status === 'SHIPPED') {
+        for (const item of order.items) {
+          await tx.productVariation.update({
+            where: { id: item.variationId },
+            data: { stock: { increment: item.quantity } },
+          });
+          await tx.stockMovement.create({
+            data: {
+              variationId: item.variationId,
+              quantity: item.quantity,
+              type: 'RETURN',
+              reason: `Отмена онлайн-заказа #${order.id.slice(-8).toUpperCase()}`,
+            },
+          });
+        }
+      }
+
+      await tx.activityLog.create({
+        data: {
+          userId: req.user!.id,
+          action: 'ORDER_CANCELLED',
+          details: `Заказ #${req.params.id.slice(-8).toUpperCase()} отменён`,
+        },
+      });
+    });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

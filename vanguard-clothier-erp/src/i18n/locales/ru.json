@@ -77,6 +77,8 @@
     "enter_drawer_balance": "Сумма в кассе:",
     "shift_notes": "Автоматическая выгрузка Z-отчета",
     "error_close_shift": "Ошибка закрытия смены",
+    "closing_balance": "Остаток в кассе",
+    "confirm_close": "Закрыть смену",
     "queued_offline": "Продажа сохранена локально",
     "add_customer": "Клиент",
     "promo_code": "Купон",

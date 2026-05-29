@@ -32,10 +32,12 @@ interface FilterPanelProps {
   category: string; setCategory: (v: string) => void; categories: Category[];
   brand: string; setBrand: (v: string) => void; brands: Brand[];
   inStock: boolean; setInStock: (v: boolean) => void;
+  minPrice: string; setMinPrice: (v: string) => void;
+  maxPrice: string; setMaxPrice: (v: string) => void;
   hasFilters: boolean; clearFilters: () => void;
 }
 
-function FilterPanel({ search, setSearch, gender, setGender, category, setCategory, categories, brand, setBrand, brands, inStock, setInStock, hasFilters, clearFilters }: FilterPanelProps) {
+function FilterPanel({ search, setSearch, gender, setGender, category, setCategory, categories, brand, setBrand, brands, inStock, setInStock, minPrice, setMinPrice, maxPrice, setMaxPrice, hasFilters, clearFilters }: FilterPanelProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -89,6 +91,29 @@ function FilterPanel({ search, setSearch, gender, setGender, category, setCatego
       )}
 
       <div>
+        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Цена, ₽</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            value={minPrice}
+            onChange={e => setMinPrice(e.target.value)}
+            placeholder="От"
+            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+          <span className="text-gray-400 shrink-0">—</span>
+          <input
+            type="number"
+            min="0"
+            value={maxPrice}
+            onChange={e => setMaxPrice(e.target.value)}
+            placeholder="До"
+            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div>
         <label className="flex items-center gap-3 cursor-pointer">
           <div onClick={() => setInStock(!inStock)} className={`relative w-10 h-5.5 rounded-full transition-colors ${inStock ? 'bg-blue-600' : 'bg-gray-200'}`}>
             <div className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 bg-white rounded-full shadow transition-transform ${inStock ? 'translate-x-4.5' : ''}`} />
@@ -116,12 +141,17 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
   const [gender, setGender] = useState(initialParams?.gender ?? 'ALL');
   const [category, setCategory] = useState(initialParams?.category ?? '');
   const [brand, setBrand] = useState('');
-  const [sort, setSort] = useState('newest');
+  const [sort, setSort] = useState(initialParams?.sort ?? 'newest');
   const [inStock, setInStock] = useState(false);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const fetchProducts = useCallback(async () => {
+  const [fetchError, setFetchError] = useState(false);
+
+  const fetchProducts = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
+    setFetchError(false);
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
@@ -131,15 +161,24 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
       if (sort !== 'newest') params.set('sort', sort);
       if (inStock) params.set('inStock', 'true');
 
-      const res = await fetch(`/api/public/products?${params}`);
-      if (res.ok) setProducts(await res.json());
+      const res = await fetch(`/api/public/products?${params}`, { signal });
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(Array.isArray(data) ? data : []);
+      } else {
+        setFetchError(true);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') setFetchError(true);
     } finally {
       setLoading(false);
     }
   }, [search, gender, category, brand, sort, inStock]);
 
   useEffect(() => {
-    fetchProducts();
+    const controller = new AbortController();
+    fetchProducts(controller.signal);
+    return () => controller.abort();
   }, [fetchProducts]);
 
   useEffect(() => {
@@ -154,13 +193,26 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
   }, []);
 
   const clearFilters = () => {
-    setSearch(''); setGender('ALL'); setCategory(''); setBrand(''); setSort('newest'); setInStock(false);
+    setSearch(''); setGender('ALL'); setCategory(''); setBrand(''); setSort('newest'); setInStock(false); setMinPrice(''); setMaxPrice('');
   };
-  const hasFilters = search || (gender !== 'ALL') || category || brand || inStock || sort !== 'newest';
+  const hasFilters = search || (gender !== 'ALL') || category || brand || inStock || sort !== 'newest' || minPrice || maxPrice;
+
+  const filteredProducts = products.filter(p => {
+    const price = (p.variations ?? []).length > 0
+      ? Math.min(...(p.variations ?? []).map(v => {
+          const disc = p.discount ?? 0;
+          return disc > 0 ? Math.round(v.salePrice * (1 - disc / 100)) : v.salePrice;
+        }))
+      : 0;
+    if (minPrice && price < Number(minPrice)) return false;
+    if (maxPrice && price > Number(maxPrice)) return false;
+    return true;
+  });
 
   const filterProps: FilterPanelProps = {
     search, setSearch, gender, setGender, category, setCategory, categories,
     brand, setBrand, brands, inStock, setInStock,
+    minPrice, setMinPrice, maxPrice, setMaxPrice,
     hasFilters: !!hasFilters, clearFilters,
   };
 
@@ -208,7 +260,7 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
               </button>
 
               <div className="flex-1 text-sm text-gray-500">
-                {loading ? '...' : `${products.length} товаров`}
+                {loading ? '...' : `${filteredProducts.length} товаров`}
               </div>
 
               <div className="relative">
@@ -258,11 +310,24 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
                     <button onClick={() => setInStock(false)}><X size={11} /></button>
                   </span>
                 )}
+                {(minPrice || maxPrice) && (
+                  <span className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-700 text-xs font-medium rounded-full">
+                    {minPrice ? `от ${Number(minPrice).toLocaleString('ru-RU')} ₽` : ''}{minPrice && maxPrice ? ' ' : ''}{maxPrice ? `до ${Number(maxPrice).toLocaleString('ru-RU')} ₽` : ''}
+                    <button onClick={() => { setMinPrice(''); setMaxPrice(''); }}><X size={11} /></button>
+                  </span>
+                )}
               </div>
             )}
 
             {/* Grid */}
-            {loading ? (
+            {fetchError && !loading ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <p className="text-gray-500 mb-4">Не удалось загрузить товары. Проверьте соединение и попробуйте снова.</p>
+                <button onClick={clearFilters} className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors">
+                  Попробовать снова
+                </button>
+              </div>
+            ) : loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(12)].map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
@@ -275,7 +340,7 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
                   </div>
                 ))}
               </div>
-            ) : products.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div className="text-6xl mb-4">🔍</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Ничего не найдено</h3>
@@ -286,7 +351,7 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                {products.map(p => (
+                {filteredProducts.map(p => (
                   <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} onNavigate={onNavigate} />
                 ))}
               </div>
@@ -314,7 +379,7 @@ export default function CatalogPage({ onNavigate, onAddToCart, initialParams }: 
                 onClick={() => setFiltersOpen(false)}
                 className="w-full py-3.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
               >
-                Показать {products.length} товаров
+                Показать {filteredProducts.length} товаров
               </button>
             </div>
           </div>

@@ -64,10 +64,10 @@ export function Login({ onLogin, initialView = 'login', onBack }: LoginProps) {
       if (res.ok) {
         onLogin(data.token, data.user);
       } else {
-        setError(data.error || 'Authentication failed');
+        setError(data.error || 'Ошибка авторизации');
       }
     } catch {
-      setError('Connection to server failed');
+      setError('Ошибка соединения с сервером');
     } finally {
       setIsLoading(false);
     }
@@ -87,10 +87,10 @@ export function Login({ onLogin, initialView = 'login', onBack }: LoginProps) {
       if (res.ok) {
         onLogin(data.token, data.user);
       } else {
-        setError(data.error || 'Registration failed');
+        setError(data.error || 'Ошибка регистрации');
       }
     } catch {
-      setError('Connection to server failed');
+      setError('Ошибка соединения с сервером');
     } finally {
       setIsLoading(false);
     }
@@ -108,13 +108,13 @@ export function Login({ onLogin, initialView = 'login', onBack }: LoginProps) {
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccess(`Код сброса: ${data.resetToken}`);
+        setSuccess('Код сброса отправлен. Проверьте консоль сервера (режим разработки).');
         setResetStep('code');
       } else {
-        setError(data.error || 'Request failed');
+        setError(data.error || 'Ошибка запроса');
       }
     } catch {
-      setError('Connection failed');
+      setError('Ошибка соединения с сервером');
     } finally {
       setIsLoading(false);
     }
@@ -135,17 +135,17 @@ export function Login({ onLogin, initialView = 'login', onBack }: LoginProps) {
         setSuccess('Пароль успешно обновлён. Войдите с новым паролем.');
         setTimeout(() => switchView('login'), 2000);
       } else {
-        setError(data.error || 'Reset failed');
+        setError(data.error || 'Ошибка сброса пароля');
       }
     } catch {
-      setError('Connection failed');
+      setError('Ошибка соединения с сервером');
     } finally {
       setIsLoading(false);
     }
   };
 
   const titles: Record<AuthView, { title: string; sub: string }> = {
-    login: { title: 'Вход в систему', sub: 'Enterprise Resource Planning & POS Terminal' },
+    login: { title: 'Вход в систему', sub: 'АИС управления магазином одежды' },
     register: { title: 'Регистрация', sub: 'Введите код приглашения от администратора' },
     forgot: { title: 'Сброс пароля', sub: resetStep === 'email' ? 'Введите ваш email для получения кода' : 'Введите код и новый пароль' },
   };

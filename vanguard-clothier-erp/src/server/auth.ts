@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Role } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'vanguard-secret-key-123';
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET not set in .env — set it before deploying to production!');
+}
+const JWT_SECRET = process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
 
 export interface AuthRequest extends Request {
   user?: {

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  User, ShoppingBag, RotateCcw, Bell, Tag, Heart, GitCompare,
-  History, MapPin, Settings, ChevronRight, Star, Package, LogIn
+  User, ShoppingBag, RotateCcw, Bell, Tag, Heart,
+  MapPin, Settings, ChevronRight, Star, Package, LogIn, Loader2
 } from 'lucide-react';
 import { useWishlistStore } from '../../store/wishlistStore';
 import SizeModal from '../components/SizeModal';
@@ -19,31 +19,50 @@ interface ProfilePageProps {
   onNavigate: (page: string, params?: Record<string, string>) => void;
   onAddToCart: (product: StorefrontProduct) => void;
   customerInfo?: CustomerInfo | null;
+  customerToken?: string | null;
   onLogout?: () => void;
+  initialSection?: Section;
 }
 
 type Section = 'main' | 'orders' | 'returns' | 'wishlist' | 'notifications' | 'discounts' | 'addresses' | 'settings';
 
 const MENU_ITEMS = [
-  { id: 'orders' as Section, icon: ShoppingBag, label: 'Мои заказы', desc: '3 активных заказа' },
+  { id: 'orders' as Section, icon: ShoppingBag, label: 'Мои заказы', desc: '' },
   { id: 'returns' as Section, icon: RotateCcw, label: 'Возвраты', desc: '0 открытых возвратов' },
-  { id: 'notifications' as Section, icon: Bell, label: 'Уведомления', desc: '2 новых' },
+  { id: 'notifications' as Section, icon: Bell, label: 'Уведомления', desc: '0 новых' },
   { id: 'discounts' as Section, icon: Tag, label: 'Скидки и промокоды', desc: 'Персональные предложения' },
   { id: 'wishlist' as Section, icon: Heart, label: 'Избранное', desc: '' },
-  { id: 'addresses' as Section, icon: MapPin, label: 'Мои адреса', desc: '1 сохранённый адрес' },
+  { id: 'addresses' as Section, icon: MapPin, label: 'Мои адреса', desc: 'Управление адресами' },
   { id: 'settings' as Section, icon: Settings, label: 'Настройки', desc: 'Профиль и безопасность' },
 ];
 
-const MOCK_ORDERS = [
-  { id: '24510', date: '15 мая 2024', status: 'Доставляется', statusColor: 'text-blue-600 bg-blue-50', total: 8990, items: 2 },
-  { id: '24102', date: '2 мая 2024', status: 'Получен', statusColor: 'text-green-600 bg-green-50', total: 12400, items: 3 },
-  { id: '23891', date: '20 апреля 2024', status: 'Получен', statusColor: 'text-green-600 bg-green-50', total: 4500, items: 1 },
-];
+const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  PENDING:    { label: 'Обрабатывается', color: 'text-yellow-600 bg-yellow-50' },
+  CONFIRMED:  { label: 'Подтверждён',    color: 'text-blue-600 bg-blue-50' },
+  SHIPPED:    { label: 'Доставляется',   color: 'text-indigo-600 bg-indigo-50' },
+  DELIVERED:  { label: 'Получен',        color: 'text-green-600 bg-green-50' },
+  CANCELLED:  { label: 'Отменён',        color: 'text-red-600 bg-red-50' },
+};
 
-export default function ProfilePage({ onNavigate, onAddToCart, customerInfo, onLogout }: ProfilePageProps) {
-  const [section, setSection] = useState<Section>('main');
+export default function ProfilePage({ onNavigate, onAddToCart, customerInfo, customerToken, onLogout, initialSection }: ProfilePageProps) {
+  const [section, setSection] = useState<Section>(initialSection ?? 'main');
   const wishlistItems = useWishlistStore(s => s.items);
   const removeWishlist = useWishlistStore(s => s.removeItem);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  useEffect(() => {
+    const token = customerToken || localStorage.getItem('customerToken');
+    if (!token || !customerInfo) return;
+    const controller = new AbortController();
+    setOrdersLoading(true);
+    fetch('/api/public/my-orders', { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setOrders(Array.isArray(data) ? data : []))
+      .catch(err => { if (err.name !== 'AbortError') setOrders([]); })
+      .finally(() => setOrdersLoading(false));
+    return () => controller.abort();
+  }, [customerInfo, customerToken]);
 
   const isGuest = !customerInfo;
 
@@ -165,6 +184,8 @@ export default function ProfilePage({ onNavigate, onAddToCart, customerInfo, onL
                     <p className="text-sm font-semibold text-gray-900">{item.label}</p>
                     {item.id === 'wishlist'
                       ? <p className="text-xs text-gray-500">{wishlistItems.length} товаров</p>
+                      : item.id === 'orders'
+                      ? <p className="text-xs text-gray-500">{orders.length > 0 ? `${orders.length} заказ(ов)` : 'Нет заказов'}</p>
                       : <p className="text-xs text-gray-500">{item.desc}</p>
                     }
                   </div>
@@ -178,31 +199,58 @@ export default function ProfilePage({ onNavigate, onAddToCart, customerInfo, onL
         {section === 'orders' && (
           <div>
             <h2 className="text-2xl font-black text-gray-900 mb-6">Мои заказы</h2>
-            <div className="space-y-4">
-              {MOCK_ORDERS.map(order => (
-                <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <span className="font-semibold text-gray-900">Заказ №{order.id}</span>
-                      <span className="text-sm text-gray-400 ml-3">от {order.date}</span>
+            {ordersLoading ? (
+              <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
+                <Loader2 size={20} className="animate-spin" />
+                <span className="text-sm">Загрузка заказов...</span>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+                <ShoppingBag size={40} className="text-gray-200 mx-auto mb-4" />
+                <p className="font-semibold text-gray-900 mb-1">Заказов пока нет</p>
+                <p className="text-sm text-gray-500 mb-6">Оформите первый заказ в каталоге</p>
+                <button
+                  onClick={() => onNavigate('catalog')}
+                  className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors"
+                >
+                  Перейти в каталог
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((order: any) => {
+                  const st = STATUS_MAP[order.status] ?? { label: order.status, color: 'text-gray-600 bg-gray-50' };
+                  const date = order.createdAt ? new Date(order.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+                  return (
+                    <div key={order.id} className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="font-semibold text-gray-900">Заказ №{order.id.slice(-6).toUpperCase()}</span>
+                          <span className="text-sm text-gray-400 ml-3">от {date}</span>
+                        </div>
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${st.color}`}>{st.label}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">{order.items?.length ?? 0} позиций</span>
+                        <span className="font-bold text-gray-900">{(order.total ?? 0).toLocaleString('ru-RU')} ₽</span>
+                      </div>
+                      {order.items?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-50 space-y-1">
+                          {order.items.slice(0, 3).map((item: any) => (
+                            <p key={item.id} className="text-xs text-gray-500 truncate">
+                              {item.variation?.product?.name} — {item.variation?.size}, {item.variation?.color} × {item.quantity}
+                            </p>
+                          ))}
+                          {order.items.length > 3 && (
+                            <p className="text-xs text-gray-400">и ещё {order.items.length - 3} позиции...</p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${order.statusColor}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">{order.items} товара</span>
-                    <span className="font-bold text-gray-900">{order.total.toLocaleString('ru-RU')} ₽</span>
-                  </div>
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
-                    <button className="text-xs text-blue-600 font-medium hover:underline">Подробнее</button>
-                    {order.status === 'Получен' && (
-                      <button className="text-xs text-gray-500 font-medium hover:underline ml-4">Оформить возврат</button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -228,13 +276,21 @@ export default function ProfilePage({ onNavigate, onAddToCart, customerInfo, onL
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {wishlistItems.map(item => (
                   <div key={item.productId} className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                    <div className="aspect-[3/4] bg-gray-50">
+                    <button
+                      className="block w-full aspect-[3/4] bg-gray-50 cursor-pointer"
+                      onClick={() => onNavigate('product', { productId: item.productId })}
+                    >
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover" />
+                        <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" />
                       ) : <div className="w-full h-full bg-gray-100" />}
-                    </div>
+                    </button>
                     <div className="p-3">
-                      <p className="text-sm font-medium text-gray-900 line-clamp-2">{item.productName}</p>
+                      <button
+                        className="text-sm font-medium text-gray-900 line-clamp-2 text-left hover:text-blue-600 transition-colors w-full"
+                        onClick={() => onNavigate('product', { productId: item.productId })}
+                      >
+                        {item.productName}
+                      </button>
                       <p className="text-base font-bold text-gray-900 mt-1">{item.price.toLocaleString('ru-RU')} ₽</p>
                       <button
                         onClick={() => removeWishlist(item.productId)}
@@ -253,52 +309,65 @@ export default function ProfilePage({ onNavigate, onAddToCart, customerInfo, onL
         {section === 'discounts' && (
           <div>
             <h2 className="text-2xl font-black text-gray-900 mb-6">Скидки и промокоды</h2>
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-              <Tag size={40} className="text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">Войдите в аккаунт, чтобы просматривать персональные скидки и промокоды</p>
-              <button
-                onClick={() => onNavigate('login')}
-                className="mt-6 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors"
-              >
-                Войти
-              </button>
-            </div>
+            {customerInfo ? (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-6 text-white">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Star size={20} className="fill-white" />
+                    <span className="font-bold">Карта лояльности VANGUARD</span>
+                  </div>
+                  <p className="text-3xl font-black">{customerInfo.loyaltyPoints} баллов</p>
+                  <p className="text-sm text-blue-100 mt-1">1 балл = 1 рубль скидки при следующей покупке</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-400">
+                  <Tag size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Персональные промокоды появятся здесь после первых покупок</p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                <Tag size={40} className="text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Войдите в аккаунт, чтобы просматривать персональные скидки и промокоды</p>
+                <button
+                  onClick={() => onNavigate('login')}
+                  className="mt-6 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors"
+                >
+                  Войти
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {section === 'addresses' && (
           <div>
             <h2 className="text-2xl font-black text-gray-900 mb-6">Мои адреса</h2>
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="flex items-start gap-4 pb-4 border-b border-gray-100">
-                <MapPin size={18} className="text-blue-500 shrink-0 mt-1" />
-                <div>
-                  <p className="font-semibold text-gray-900">Москва, ул. Ленина, 10, кв. 5</p>
-                  <p className="text-sm text-gray-500">Основной адрес</p>
-                </div>
-              </div>
-              <button className="mt-4 text-sm text-blue-600 font-medium hover:underline">+ Добавить адрес</button>
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400">
+              <MapPin size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Сохранённые адреса появятся здесь после первого оформления заказа с доставкой</p>
             </div>
           </div>
         )}
 
         {section === 'settings' && (
           <div>
-            <h2 className="text-2xl font-black text-gray-900 mb-6">Настройки</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-6">Настройки профиля</h2>
             <div className="space-y-4">
               {[
-                { label: 'Имя', value: 'Гость' },
-                { label: 'Email', value: 'Не указан' },
-                { label: 'Телефон', value: 'Не указан' },
+                { label: 'Имя', value: customerInfo?.name || 'Не указано' },
+                { label: 'Email', value: customerInfo?.email || 'Не указан' },
+                { label: 'Телефон', value: customerInfo?.phone || 'Не указан' },
               ].map(field => (
                 <div key={field.label} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center justify-between">
                   <div>
                     <p className="text-xs text-gray-500">{field.label}</p>
                     <p className="font-medium text-gray-900">{field.value}</p>
                   </div>
-                  <button className="text-sm text-blue-600 font-medium hover:underline">Изменить</button>
                 </div>
               ))}
+              <div className="bg-blue-50 rounded-2xl border border-blue-100 p-4 text-sm text-blue-700">
+                Для изменения контактных данных обратитесь на стойку магазина или напишите на help@vanguard.ru
+              </div>
             </div>
           </div>
         )}
@@ -307,21 +376,29 @@ export default function ProfilePage({ onNavigate, onAddToCart, customerInfo, onL
           <div>
             <h2 className="text-2xl font-black text-gray-900 mb-6">Уведомления</h2>
             <div className="space-y-3">
-              {[
-                { title: 'Ваш заказ №24510 в пути', time: '2 часа назад', unread: true },
-                { title: 'Акция: скидка 25% на трикотаж', time: '1 день назад', unread: true },
-                { title: 'Заказ №24102 доставлен', time: '3 дня назад', unread: false },
-              ].map((n, i) => (
-                <div key={i} className={`bg-white rounded-2xl border p-4 ${n.unread ? 'border-blue-200' : 'border-gray-100'}`}>
-                  <div className="flex items-start gap-3">
-                    {n.unread && <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5 shrink-0" />}
-                    <div>
-                      <p className={`text-sm ${n.unread ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
-                      <p className="text-xs text-gray-400 mt-1">{n.time}</p>
+              {orders.slice(0, 3).length > 0 ? orders.slice(0, 3).map((order: any, i: number) => {
+                const st = STATUS_MAP[order.status] ?? { label: order.status, color: '' };
+                return (
+                  <div key={order.id} className={`bg-white rounded-2xl border p-4 ${i === 0 ? 'border-blue-200' : 'border-gray-100'}`}>
+                    <div className="flex items-start gap-3">
+                      {i === 0 && <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5 shrink-0" />}
+                      <div>
+                        <p className={`text-sm ${i === 0 ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                          Заказ №{order.id.slice(-6).toUpperCase()} — {st.label}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '—'}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                );
+              }) : (
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400">
+                  <Bell size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Уведомлений пока нет</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}

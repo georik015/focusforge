@@ -8,6 +8,25 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
   const { items, paymentType, customerId, discount } = req.body;
   const sellerId = req.user!.id;
 
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Список товаров пуст' });
+  }
+  const validPaymentTypes = ['CASH', 'CARD'];
+  if (!validPaymentTypes.includes(paymentType)) {
+    return res.status(400).json({ error: 'Неверный тип оплаты' });
+  }
+  for (const item of items) {
+    const qty = Number(item.quantity);
+    const price = Number(item.priceAtSale);
+    if (!item.variationId || typeof item.variationId !== 'string' ||
+        !Number.isInteger(qty) || qty < 1 || isNaN(price) || price < 0) {
+      return res.status(400).json({ error: 'Неверные данные позиции товара' });
+    }
+  }
+  if (discount !== undefined && (isNaN(Number(discount)) || Number(discount) < 0)) {
+    return res.status(400).json({ error: 'Неверная скидка' });
+  }
+
   try {
     const result = await prisma.$transaction(async (tx) => {
       let totalAmount = 0;
@@ -67,6 +86,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
           paymentType,
           sellerId,
           customerId,
+          shiftId: req.body.shiftId || null,
           items: {
             create: items.map((item: any) => ({
               variationId: item.variationId,
@@ -112,6 +132,27 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
   }
 });
 
+// GET sales history — must be declared BEFORE /:id to avoid route conflict
+router.get('/history', authenticate, async (req, res) => {
+  const page = Math.max(1, parseInt(String(req.query.page ?? '1')));
+  const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? '50'))));
+  try {
+    const sales = await prisma.sale.findMany({
+      include: {
+        seller: { select: { name: true } },
+        customer: { select: { name: true } },
+        items: { include: { variation: { include: { product: true } } } }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    res.json(sales);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch sales history' });
+  }
+});
+
 // GET single sale (for return lookup)
 router.get('/:id', authenticate, async (req, res) => {
   try {
@@ -148,6 +189,40 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
   }
 
   try {
+    const existingSale = await prisma.sale.findUnique({
+      where: { id: saleId },
+      include: {
+        items: true,
+        returns: { include: { items: true } },
+      },
+    });
+    if (!existingSale) return res.status(404).json({ error: 'Продажа не найдена' });
+
+    // Проверяем каждый товар в возврате
+    for (const returnItem of items) {
+      const saleItem = existingSale.items.find(si => si.variationId === returnItem.variationId);
+      if (!saleItem) {
+        return res.status(400).json({
+          error: `Товар ${returnItem.variationId} не найден в данной продаже`,
+        });
+      }
+
+      const alreadyReturned = existingSale.returns
+        .flatMap(r => r.items)
+        .filter(ri => ri.variationId === returnItem.variationId)
+        .reduce((sum, ri) => sum + ri.quantity, 0);
+
+      if (returnItem.quantity + alreadyReturned > saleItem.quantity) {
+        return res.status(400).json({
+          error: `Превышено количество для возврата: куплено ${saleItem.quantity}, уже возвращено ${alreadyReturned}, запрошено ${returnItem.quantity}`,
+        });
+      }
+
+      if (returnItem.quantity <= 0) {
+        return res.status(400).json({ error: 'Количество возврата должно быть больше 0' });
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const totalRefund = items.reduce((sum, i) => sum + i.quantity * i.refundPrice, 0);
 
@@ -167,15 +242,32 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
         include: { items: true }
       });
 
+      // Find cashier's warehouse for stock restore
+      const cashier = await tx.user.findUnique({
+        where: { id: req.user!.id },
+        select: { warehouseId: true },
+      });
+      const warehouseId = cashier?.warehouseId ?? null;
+
       // Restore stock for each returned item
       for (const item of items) {
         await tx.productVariation.update({
           where: { id: item.variationId },
           data: { stock: { increment: item.quantity } },
         });
+
+        if (warehouseId) {
+          await tx.warehouseStock.upsert({
+            where: { warehouseId_variationId: { warehouseId, variationId: item.variationId } },
+            update: { quantity: { increment: item.quantity } },
+            create: { warehouseId, variationId: item.variationId, quantity: item.quantity },
+          });
+        }
+
         await tx.stockMovement.create({
           data: {
             variationId: item.variationId,
+            toWarehouseId: warehouseId ?? undefined,
             quantity: item.quantity,
             type: 'RETURN',
             reason: `Возврат по чеку #${saleId.slice(-6).toUpperCase()}`,
@@ -198,23 +290,6 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
   } catch (err: any) {
     console.error('Return error:', err);
     res.status(500).json({ error: 'Failed to process return' });
-  }
-});
-
-router.get('/history', authenticate, async (_req, res) => {
-  try {
-    const sales = await prisma.sale.findMany({
-      include: {
-        seller: { select: { name: true } },
-        customer: { select: { name: true } },
-        items: { include: { variation: { include: { product: true } } } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100
-    });
-    res.json(sales);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch sales history' });
   }
 });
 

@@ -5,6 +5,8 @@ import {
   TrendingDown,
   Plus,
   Download,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -39,7 +41,10 @@ export function Finances() {
   const [expenseStats, setExpenseStats] = useState<{ total: number; byCategory: Record<string, number> } | null>(null);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [newExpense, setNewExpense] = useState({ amount: '', category: 'OTHER', description: '' });
+  const [editingExpense, setEditingExpense] = useState<any | null>(null);
+  const [editExpenseData, setEditExpenseData] = useState({ amount: '', category: 'OTHER', description: '' });
   const [isLoading, setIsLoading] = useState(true);
+  const [expenseError, setExpenseError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -63,9 +68,40 @@ export function Finances() {
     }
   };
 
+  const openEdit = (expense: any) => {
+    setEditingExpense(expense);
+    setEditExpenseData({ amount: String(expense.amount), category: expense.category, description: expense.description ?? '' });
+  };
+
+  const handleUpdateExpense = async () => {
+    if (!editingExpense) return;
+    if (!editExpenseData.amount || parseFloat(editExpenseData.amount) <= 0) {
+      setExpenseError('Введите корректную сумму');
+      return;
+    }
+    try {
+      await api.patch(`/finance/expenses/${editingExpense.id}`, editExpenseData);
+      setEditingExpense(null);
+      fetchData();
+    } catch {
+      setExpenseError('Ошибка при обновлении расхода');
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!window.confirm('Удалить этот расход?')) return;
+    try {
+      await api.delete(`/finance/expenses/${id}`);
+      fetchData();
+    } catch {
+      setExpenseError('Ошибка при удалении расхода');
+    }
+  };
+
   const handleAddExpense = async () => {
+    setExpenseError(null);
     if (!newExpense.amount || parseFloat(newExpense.amount) <= 0) {
-      alert('Введите корректную сумму');
+      setExpenseError('Введите корректную сумму');
       return;
     }
     try {
@@ -74,12 +110,12 @@ export function Finances() {
       setNewExpense({ amount: '', category: 'OTHER', description: '' });
       fetchData();
     } catch {
-      alert('Ошибка при добавлении расхода');
+      setExpenseError('Ошибка при добавлении расхода');
     }
   };
 
   const handleExportStatement = () => {
-    if (!expenses.length) { alert('Нет данных для экспорта'); return; }
+    if (!expenses.length) { setExpenseError('Нет данных для экспорта'); return; }
 
     const wb = XLSX.utils.book_new();
 
@@ -208,6 +244,7 @@ export function Finances() {
                     <th className="text-left py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('inventory.category')}</th>
                     <th className="text-left py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Описание</th>
                     <th className="text-right py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.amount')}</th>
+                    <th className="w-16" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -223,6 +260,24 @@ export function Finances() {
                       </td>
                       <td className="py-4 text-xs font-bold text-slate-900">{expense.description || '—'}</td>
                       <td className="py-4 text-right text-sm font-black text-rose-600">-{currency}{expense.amount.toLocaleString()}</td>
+                      <td className="py-4">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                          <button
+                            onClick={() => openEdit(expense)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Редактировать"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Удалить"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -282,6 +337,61 @@ export function Finances() {
           </div>
         </div>
       </div>
+
+      {/* Edit Expense Modal */}
+      <AnimatePresence>
+        {editingExpense && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-slate-100 bg-slate-50/50">
+                <h3 className="text-xl font-black text-slate-900">Редактировать расход</h3>
+              </div>
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.amount')} ({currency})</label>
+                  <Input
+                    type="number"
+                    value={editExpenseData.amount}
+                    onChange={(e) => setEditExpenseData({ ...editExpenseData, amount: e.target.value })}
+                    className="h-14 text-lg font-bold border-slate-200 rounded-xl"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('inventory.category')}</label>
+                  <select
+                    value={editExpenseData.category}
+                    onChange={(e) => setEditExpenseData({ ...editExpenseData, category: e.target.value })}
+                    className="w-full h-14 bg-white border border-slate-200 rounded-xl px-4 font-bold text-sm focus:ring-0"
+                  >
+                    {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Описание</label>
+                  <textarea
+                    value={editExpenseData.description}
+                    onChange={(e) => setEditExpenseData({ ...editExpenseData, description: e.target.value })}
+                    className="w-full min-h-[80px] border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:ring-0"
+                  />
+                </div>
+                {expenseError && <p className="text-xs text-red-500 font-bold">{expenseError}</p>}
+                <div className="flex gap-3 pt-4">
+                  <Button variant="outline" onClick={() => setEditingExpense(null)} className="flex-1 h-14 rounded-xl border-slate-200 font-bold">{t('common.cancel')}</Button>
+                  <Button onClick={handleUpdateExpense} className="flex-[1.5] h-14 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100">{t('common.save')}</Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Expense Modal */}
       <AnimatePresence>

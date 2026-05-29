@@ -9,12 +9,21 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   };
 
   const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Unexpected response format (${response.status})`);
+  }
   const data = await response.json();
 
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.reload();
+      const alreadyRedirecting = (window as any).__vanguardRedirecting;
+      if (!alreadyRedirecting) {
+        (window as any).__vanguardRedirecting = true;
+        localStorage.removeItem('token');
+        window.location.reload();
+      }
     }
     throw new Error(data.error || 'Something went wrong');
   }

@@ -8,9 +8,10 @@ interface ReceiptProps {
   storeName?: string;
   storeAddress?: string;
   storePhone?: string;
+  cashierName?: string;
 }
 
-export const Receipt = React.forwardRef<HTMLDivElement, ReceiptProps>(({ sale, items, storeName, storeAddress, storePhone }, ref) => {
+export const Receipt = React.forwardRef<HTMLDivElement, ReceiptProps>(({ sale, items, storeName, storeAddress, storePhone, cashierName }, ref) => {
   const { t } = useTranslation();
   const currency = t('common.ru_currency', '₽');
 
@@ -42,7 +43,7 @@ export const Receipt = React.forwardRef<HTMLDivElement, ReceiptProps>(({ sale, i
         </div>
         <div className="flex justify-between">
           <span>{t('receipt.cashier')}:</span>
-          <span>STAFF-POS-01</span>
+          <span>{cashierName || 'Кассир'}</span>
         </div>
       </div>
 

@@ -112,11 +112,13 @@ router.get('/variations', authenticate, async (_req, res) => {
 });
 
 router.post('/', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req: AuthRequest, res) => {
-  const { name, description, imageUrl, categoryId, brandId, variations } = req.body;
+  const { name, description, imageUrl, categoryId, brandId, gender, variations } = req.body;
 
   if (!name?.trim() || !categoryId || !brandId) {
     return res.status(400).json({ error: 'Name, categoryId and brandId are required' });
   }
+
+  const validGenders = ['MALE', 'FEMALE', 'UNISEX', 'KIDS'];
 
   try {
     const product = await prisma.product.create({
@@ -126,6 +128,7 @@ router.post('/', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req: 
         imageUrl: imageUrl?.trim() || null,
         categoryId,
         brandId,
+        gender: validGenders.includes(gender) ? gender : 'UNISEX',
         variations: variations?.length
           ? {
               create: variations.map((v: any) => ({
@@ -247,9 +250,9 @@ router.patch('/variation/:id', authenticate, authorize(['ADMIN', 'STOREKEEPER'])
 
   try {
     const data: any = {};
-    if (stock !== undefined) data.stock = Number(stock);
-    if (salePrice !== undefined) data.salePrice = Number(salePrice);
-    if (purchasePrice !== undefined) data.purchasePrice = Number(purchasePrice);
+    if (stock !== undefined && Number(stock) >= 0) data.stock = Number(stock);
+    if (salePrice !== undefined && Number(salePrice) >= 0 && !isNaN(Number(salePrice))) data.salePrice = Number(salePrice);
+    if (purchasePrice !== undefined && Number(purchasePrice) >= 0 && !isNaN(Number(purchasePrice))) data.purchasePrice = Number(purchasePrice);
     if (lowStockThreshold !== undefined) data.lowStockThreshold = Number(lowStockThreshold);
 
     const variation = await prisma.productVariation.update({ where: { id }, data });

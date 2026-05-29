@@ -4,7 +4,7 @@ import { authenticate, authorize } from './auth';
 
 const router = Router();
 
-router.get('/', authenticate, async (_req, res) => {
+router.get('/', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (_req, res) => {
   try {
     const warehouses = await prisma.warehouse.findMany({
       include: {
@@ -21,6 +21,7 @@ router.get('/', authenticate, async (_req, res) => {
 
 router.post('/', authenticate, authorize(['ADMIN']), async (req, res) => {
   const { name, location, isMain } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Название склада обязательно' });
   try {
     const warehouse = await prisma.warehouse.create({
       data: { name, location, isMain: isMain || false }

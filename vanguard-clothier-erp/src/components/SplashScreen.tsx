@@ -80,7 +80,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
 
       {/* Version Tag */}
       <div className="absolute bottom-12 text-slate-700 font-bold text-[10px] tracking-widest uppercase">
-        v1.0.0-PROD | Build 2024.05.17
+        v1.0.0-PROD | Build 2026.05.23
       </div>
     </motion.div>
   );

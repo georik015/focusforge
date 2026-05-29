@@ -4,9 +4,10 @@ import { useCartStore } from '../../store/cartStore';
 
 interface CartDrawerProps {
   onCheckout?: () => void;
+  onNavigateCatalog?: () => void;
 }
 
-export default function CartDrawer({ onCheckout }: CartDrawerProps) {
+export default function CartDrawer({ onCheckout, onNavigateCatalog }: CartDrawerProps) {
   const { items, isOpen, closeCart, removeItem, updateQty, total, count } = useCartStore();
 
   return (
@@ -40,7 +41,7 @@ export default function CartDrawer({ onCheckout }: CartDrawerProps) {
               <p className="text-gray-500 font-medium">Корзина пуста</p>
               <p className="text-sm text-gray-400 mt-1">Добавьте товары, чтобы продолжить</p>
               <button
-                onClick={closeCart}
+                onClick={() => { closeCart(); onNavigateCatalog?.(); }}
                 className="mt-6 px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
               >
                 Перейти в каталог
@@ -82,7 +83,8 @@ export default function CartDrawer({ onCheckout }: CartDrawerProps) {
                       <span className="text-sm font-medium text-gray-900 min-w-[20px] text-center">{item.quantity}</span>
                       <button
                         onClick={() => updateQty(item.variationId, item.quantity + 1)}
-                        className="p-1.5 hover:bg-gray-100 transition-colors rounded-r-lg"
+                        disabled={item.stock !== undefined && item.quantity >= item.stock}
+                        className="p-1.5 hover:bg-gray-100 transition-colors rounded-r-lg disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Plus size={12} className="text-gray-600" />
                       </button>

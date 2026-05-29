@@ -3,6 +3,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 import CityModal from './components/CityModal';
+import SizeModal from './components/SizeModal';
 import SearchModal from './components/SearchModal';
 import CustomerAuthModal from './components/CustomerAuthModal';
 import BarcodeScanner from './components/BarcodeScanner';
@@ -14,6 +15,7 @@ import InfoPage from './pages/InfoPage';
 import StoresPage from './pages/StoresPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
+import NotFoundPage from './pages/NotFoundPage';
 import { StorefrontProduct } from './components/ProductCard';
 
 type Page = 'home' | 'catalog' | 'product' | 'profile' | 'info' | 'stores' | 'wishlist' | 'checkout' | 'order-success';
@@ -52,11 +54,24 @@ export default function Storefront({ onLogin }: StorefrontProps) {
   });
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [sizeModalProduct, setSizeModalProduct] = useState<StorefrontProduct | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [successOrderId, setSuccessOrderId] = useState('');
 
-  const [customerToken, setCustomerToken] = useState<string | null>(() => localStorage.getItem('customerToken'));
+  const [customerToken, setCustomerToken] = useState<string | null>(() => {
+    const token = localStorage.getItem('customerToken');
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem('customerToken');
+        localStorage.removeItem('customerInfo');
+        return null;
+      }
+    } catch { return null; }
+    return token;
+  });
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(loadCustomer);
 
   const handleAuth = useCallback((token: string, customer: CustomerInfo) => {
@@ -75,7 +90,9 @@ export default function Storefront({ onLogin }: StorefrontProps) {
   }, []);
 
   const navigate = useCallback((page: string, params: Record<string, string> = {}) => {
-    if ((page === 'login' || page === 'register') || (page === 'profile' && !customerToken)) {
+    // Wishlist is accessible without login (local store); other profile sections require auth
+    const isWishlistSection = page === 'profile' && params.section === 'wishlist';
+    if ((page === 'login' || page === 'register') || (page === 'profile' && !customerToken && !isWishlistSection)) {
       setAuthModalOpen(true);
       return;
     }
@@ -86,6 +103,10 @@ export default function Storefront({ onLogin }: StorefrontProps) {
   const handleProductClick = useCallback((product: StorefrontProduct) => {
     navigate('product', { productId: product.id });
   }, [navigate]);
+
+  const handleOpenSizeModal = useCallback((product: StorefrontProduct) => {
+    setSizeModalProduct(product);
+  }, []);
 
   const handleBarcodeScanFound = useCallback(async (sku: string) => {
     setScannerOpen(false);
@@ -113,17 +134,18 @@ export default function Storefront({ onLogin }: StorefrontProps) {
         onOpenSearch={() => setSearchOpen(true)}
         onOpenScanner={() => setScannerOpen(true)}
         currentPage={nav.page}
+        currentSection={nav.params.section}
         customerInfo={customerInfo}
       />
 
       <main className="flex-1">
         {nav.page === 'home' && (
-          <HomePage onNavigate={navigate} onAddToCart={handleProductClick} />
+          <HomePage onNavigate={navigate} onAddToCart={handleOpenSizeModal} />
         )}
         {nav.page === 'catalog' && (
           <CatalogPage
             onNavigate={navigate}
-            onAddToCart={handleProductClick}
+            onAddToCart={handleOpenSizeModal}
             initialParams={nav.params}
           />
         )}
@@ -139,15 +161,9 @@ export default function Storefront({ onLogin }: StorefrontProps) {
             onNavigate={navigate}
             onAddToCart={handleProductClick}
             customerInfo={customerInfo}
+            customerToken={customerToken}
             onLogout={handleLogout}
-          />
-        )}
-        {nav.page === 'wishlist' && (
-          <ProfilePage
-            onNavigate={navigate}
-            onAddToCart={handleProductClick}
-            customerInfo={customerInfo}
-            onLogout={handleLogout}
+            initialSection={nav.params.section as any}
           />
         )}
         {nav.page === 'info' && (
@@ -172,12 +188,15 @@ export default function Storefront({ onLogin }: StorefrontProps) {
             onNavigate={navigate}
           />
         )}
+        {!['home', 'catalog', 'product', 'profile', 'info', 'stores', 'wishlist', 'checkout', 'order-success'].includes(nav.page) && (
+          <NotFoundPage onNavigate={navigate} />
+        )}
       </main>
 
       {showFooter && <Footer onNavigate={navigate} onStaffLogin={onLogin} />}
 
       {/* Overlays */}
-      <CartDrawer onCheckout={() => navigate('checkout')} />
+      <CartDrawer onCheckout={() => navigate('checkout')} onNavigateCatalog={() => navigate('catalog')} />
       <CityModal />
       {searchOpen && (
         <SearchModal
@@ -197,6 +216,7 @@ export default function Storefront({ onLogin }: StorefrontProps) {
           onAuth={handleAuth}
         />
       )}
+      <SizeModal product={sizeModalProduct} onClose={() => setSizeModalProduct(null)} />
     </div>
   );
 }

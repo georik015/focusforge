@@ -1,6 +1,6 @@
 ﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
-import { authenticate } from './auth';
+import { authenticate, authorize } from './auth';
 
 const router = Router();
 
@@ -14,10 +14,10 @@ router.get('/dashboard', authenticate, async (_req, res) => {
     const [totalRevenue, lowStockItems, recentActivity, salesData, dailyStats, supplyCount, warehouseStock] = await Promise.all([
       prisma.sale.aggregate({ _sum: { totalAmount: true } }),
       prisma.productVariation.findMany({
-        where: { stock: { lte: 5 } },
+        where: { product: { isActive: true } },
         include: { product: true },
         take: 10
-      }),
+      }).then(all => all.filter(v => v.stock <= v.lowStockThreshold)),
       prisma.activityLog.findMany({
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
@@ -75,30 +75,44 @@ router.get('/dashboard', authenticate, async (_req, res) => {
   }
 });
 
-router.get('/reports', authenticate, async (_req, res) => {
+router.get('/reports', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req, res) => {
   try {
+    const { dateFrom, dateTo } = req.query;
+
+    const dateFilter: any = {};
+    if (dateFrom && !isNaN(new Date(String(dateFrom)).getTime())) dateFilter.gte = new Date(String(dateFrom));
+    if (dateTo && !isNaN(new Date(String(dateTo)).getTime())) {
+      const end = new Date(String(dateTo));
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+    const where = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
+
     const [totalRevenue, totalSales, totalCustomers, topSKUs] = await Promise.all([
-      prisma.sale.aggregate({ _sum: { totalAmount: true } }),
-      prisma.sale.count(),
+      prisma.sale.aggregate({ where, _sum: { totalAmount: true } }),
+      prisma.sale.count({ where }),
       prisma.customer.count(),
       prisma.saleItem.groupBy({
         by: ['variationId'],
+        where: Object.keys(dateFilter).length > 0
+          ? { sale: { createdAt: dateFilter } }
+          : undefined,
         _sum: { quantity: true },
         orderBy: { _sum: { quantity: 'desc' } },
         take: 5
       })
     ]);
 
-    const enrichedTopSKUs = await Promise.all(topSKUs.map(async (item) => {
-      const variation = await prisma.productVariation.findUnique({
-        where: { id: item.variationId },
-        include: { product: true }
-      });
-      return {
-        sku: variation?.sku,
-        name: variation?.product.name,
-        quantity: item._sum.quantity
-      };
+    const topVariationIds = topSKUs.map(i => i.variationId);
+    const topVariations = await prisma.productVariation.findMany({
+      where: { id: { in: topVariationIds } },
+      include: { product: { select: { name: true } } },
+    });
+    const varMap = new Map(topVariations.map(v => [v.id, v]));
+    const enrichedTopSKUs = topSKUs.map(item => ({
+      sku: varMap.get(item.variationId)?.sku,
+      name: varMap.get(item.variationId)?.product.name,
+      quantity: item._sum.quantity,
     }));
 
     res.json({
@@ -106,7 +120,8 @@ router.get('/reports', authenticate, async (_req, res) => {
       salesCount: totalSales,
       customerCount: totalCustomers,
       avgTicket: totalSales > 0 ? (totalRevenue._sum.totalAmount || 0) / totalSales : 0,
-      topSKUs: enrichedTopSKUs
+      topSKUs: enrichedTopSKUs,
+      period: { dateFrom: dateFrom || null, dateTo: dateTo || null },
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate report intelligence' });

@@ -40,12 +40,16 @@ export default function SearchModal({ onClose, onNavigate }: SearchModalProps) {
         const res = await fetch(`/api/public/products?search=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data = await res.json();
-          setResults(data.slice(0, 6));
+          setResults(Array.isArray(data) ? data.slice(0, 6) : []);
         }
+      } catch {
+        setResults([]);
       } finally {
         setLoading(false);
       }
     }, 300);
+
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
 
   const handleSelect = (product: SearchProduct) => {

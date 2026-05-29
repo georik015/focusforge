@@ -7,7 +7,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'vanguard-secret-key-123';
+const JWT_SECRET = process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -44,6 +44,9 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Неверный формат email или пароля' });
+    }
     res.status(500).json({ error: 'Auth service internal error' });
   }
 });
@@ -147,7 +150,7 @@ router.post('/register', async (req, res) => {
       user: { id: user.id, email: user.email, name: user.name, role: user.role }
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Registration failed' });
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
@@ -169,19 +172,16 @@ router.post('/forgot-password', async (req, res) => {
       data: { usedAt: new Date() }
     });
 
-    const token = crypto.randomBytes(4).toString('hex').toUpperCase(); // 8-char code
+    const token = crypto.randomBytes(32).toString('hex'); // 64-char secure token
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
     await prisma.passwordResetToken.create({
       data: { userId: user.id, token, expiresAt }
     });
 
-    // In production, send email. For demo, return token in response.
-    res.json({
-      message: 'Reset code generated.',
-      resetToken: token, // shown to user in dev/demo mode
-      hint: `Use code: ${token}`
-    });
+    // In production this would send an email. Log to console for demo/development.
+    if (process.env.NODE_ENV !== 'production') console.log(`[DEV] Password reset token for ${email}: ${token}`);
+    res.json({ message: 'Если такой email зарегистрирован, код восстановления был отправлен.' });
   } catch {
     res.status(500).json({ error: 'Password reset failed' });
   }

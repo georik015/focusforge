@@ -104,7 +104,7 @@ export function Catalog() {
     if (selectedCategory) list = list.filter(p => p.category.id === selectedCategory);
     if (selectedBrand) list = list.filter(p => p.brand.id === selectedBrand);
 
-    if (stockFilter === 'in_stock') list = list.filter(p => p.variations.some(v => v.stock > v.lowStockThreshold));
+    if (stockFilter === 'in_stock') list = list.filter(p => p.variations.some(v => v.stock > 0));
     else if (stockFilter === 'low') list = list.filter(p => p.variations.some(v => v.stock > 0 && v.stock <= v.lowStockThreshold));
     else if (stockFilter === 'out') list = list.filter(p => p.variations.every(v => v.stock === 0));
 

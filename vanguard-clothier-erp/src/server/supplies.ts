@@ -7,7 +7,7 @@ const router = Router();
 
 // ── Suppliers ──────────────────────────────────────────────────────────────
 
-router.get('/suppliers', authenticate, async (req, res) => {
+router.get('/suppliers', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req, res) => {
   try {
     const suppliers = await prisma.supplier.findMany({
       orderBy: { name: 'asc' },
@@ -94,7 +94,18 @@ router.post('/', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req: 
     const totalCost = items.reduce((sum, i) => sum + i.quantity * i.costPrice, 0);
 
     const supply = await prisma.$transaction(async (tx) => {
-      // 1. Create supply record
+      // 1. Find the user's warehouse (or first available)
+      const user = await tx.user.findUnique({
+        where: { id: (req as any).user.id },
+        select: { warehouseId: true },
+      });
+      let warehouseId = user?.warehouseId;
+      if (!warehouseId) {
+        const firstWarehouse = await tx.warehouse.findFirst({ select: { id: true } });
+        warehouseId = firstWarehouse?.id ?? null;
+      }
+
+      // 2. Create supply record
       const newSupply = await tx.supply.create({
         data: {
           supplierId,
@@ -113,16 +124,25 @@ router.post('/', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req: 
         },
       });
 
-      // 2. Update stock + create stock movement per item
+      // 3. Update global stock + WarehouseStock + create stock movement per item
       for (const item of items) {
         await tx.productVariation.update({
           where: { id: item.variationId },
           data: { stock: { increment: item.quantity } },
         });
 
+        if (warehouseId) {
+          await tx.warehouseStock.upsert({
+            where: { warehouseId_variationId: { warehouseId, variationId: item.variationId } },
+            update: { quantity: { increment: item.quantity } },
+            create: { warehouseId, variationId: item.variationId, quantity: item.quantity },
+          });
+        }
+
         await tx.stockMovement.create({
           data: {
             variationId: item.variationId,
+            toWarehouseId: warehouseId ?? undefined,
             quantity: item.quantity,
             type: 'SUPPLY',
             reason: `Поставка #${newSupply.id.slice(-6).toUpperCase()} от ${newSupply.supplier.name}`,
@@ -143,6 +163,73 @@ router.post('/', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req: 
   } catch (err) {
     console.error('Supply creation failed:', err);
     res.status(500).json({ error: 'Failed to create supply' });
+  }
+});
+
+router.post('/:id/cancel', authenticate, authorize(['ADMIN', 'STOREKEEPER']), async (req: any, res) => {
+  try {
+    const supply = await prisma.supply.findUnique({
+      where: { id: req.params.id },
+      include: {
+        items: true,
+        supplier: true,
+      },
+    });
+    if (!supply) return res.status(404).json({ error: 'Supply not found' });
+    if ((supply as any).status === 'CANCELLED') {
+      return res.status(400).json({ error: 'Поставка уже отменена' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Откатываем сток по каждой позиции
+      const user = await tx.user.findUnique({
+        where: { id: req.user.id },
+        select: { warehouseId: true },
+      });
+      const warehouseId = user?.warehouseId;
+
+      for (const item of supply.items) {
+        await tx.productVariation.update({
+          where: { id: item.variationId },
+          data: { stock: { decrement: item.quantity } },
+        });
+
+        if (warehouseId) {
+          const ws = await tx.warehouseStock.findUnique({
+            where: { warehouseId_variationId: { warehouseId, variationId: item.variationId } },
+          });
+          if (ws && ws.quantity >= item.quantity) {
+            await tx.warehouseStock.update({
+              where: { warehouseId_variationId: { warehouseId, variationId: item.variationId } },
+              data: { quantity: { decrement: item.quantity } },
+            });
+          }
+        }
+
+        await tx.stockMovement.create({
+          data: {
+            variationId: item.variationId,
+            fromWarehouseId: warehouseId ?? undefined,
+            quantity: item.quantity,
+            type: 'ADJUSTMENT',
+            reason: `Отмена поставки #${supply.id.slice(-6).toUpperCase()}`,
+          },
+        });
+      }
+
+      await tx.activityLog.create({
+        data: {
+          userId: req.user.id,
+          action: 'CANCEL_SUPPLY',
+          details: `Поставка #${supply.id.slice(-6).toUpperCase()} от ${supply.supplier.name} отменена`,
+        },
+      });
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Supply cancel error:', err);
+    res.status(500).json({ error: 'Failed to cancel supply' });
   }
 });
 

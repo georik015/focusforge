@@ -227,6 +227,7 @@ model Supply {
   supplierId  String
   supplier    Supplier     @relation(fields: [supplierId], references: [id])
   totalCost   Float
+  status      String       @default("CONFIRMED")
   items       SupplyItem[]
   createdAt   DateTime     @default(now())
 

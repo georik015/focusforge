@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'vanguard_secret_key_2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ router.get('/products', async (req, res) => {
         category: true,
         brand: true,
         variations: {
-          select: { id: true, sku: true, size: true, color: true, salePrice: true, purchasePrice: true, stock: true, lowStockThreshold: true },
+          select: { id: true, sku: true, size: true, color: true, salePrice: true, stock: true, lowStockThreshold: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -232,6 +232,32 @@ router.get('/auth/me', async (req, res) => {
   }
 });
 
+// ── Customer Orders ───────────────────────────────────────────────────────────
+
+router.get('/my-orders', async (req, res) => {
+  const customerId = authenticateCustomer(req);
+  if (!customerId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const orders = await prisma.storefrontOrder.findMany({
+      where: { customerId },
+      include: {
+        items: {
+          include: {
+            variation: {
+              include: { product: { select: { name: true, imageUrl: true } } },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(orders);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
 // ── Checkout / Orders ─────────────────────────────────────────────────────────
 
 router.post('/orders', async (req, res) => {
@@ -241,15 +267,45 @@ router.post('/orders', async (req, res) => {
     paymentType, comment,
   } = req.body;
 
-  if (!items?.length) return res.status(400).json({ error: 'Корзина пуста' });
+  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Корзина пуста' });
   if (!name?.trim()) return res.status(400).json({ error: 'Укажите имя' });
   if (!phone?.trim() && !email?.trim()) return res.status(400).json({ error: 'Укажите контакт' });
   if (!address?.trim()) return res.status(400).json({ error: 'Укажите адрес доставки' });
 
+  for (const item of items) {
+    const qty = Number(item.quantity);
+    if (!item.variationId || typeof item.variationId !== 'string' || item.variationId.trim().length === 0) {
+      return res.status(400).json({ error: 'Неверные данные товара' });
+    }
+    if (!Number.isInteger(qty) || qty < 1 || qty > 100) {
+      return res.status(400).json({ error: 'Неверное количество товара' });
+    }
+  }
+
   const customerId = authenticateCustomer(req);
 
   try {
-    const total = items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+    // Fetch actual prices from DB — never trust client-provided price
+    const variationIds = items.map((i: any) => String(i.variationId));
+    const variations = await prisma.productVariation.findMany({
+      where: { id: { in: variationIds }, product: { isActive: true } },
+      select: { id: true, salePrice: true, stock: true },
+    });
+    if (variations.length !== variationIds.length) {
+      return res.status(400).json({ error: 'Один или несколько товаров недоступны' });
+    }
+    const varMap = new Map(variations.map(v => [v.id, v]));
+
+    for (const item of items) {
+      const v = varMap.get(item.variationId)!;
+      if (v.stock < Number(item.quantity)) {
+        return res.status(400).json({ error: 'Недостаточно товара на складе' });
+      }
+    }
+
+    const total = items.reduce((sum: number, item: any) => {
+      return sum + varMap.get(item.variationId)!.salePrice * Number(item.quantity);
+    }, 0);
 
     const order = await prisma.storefrontOrder.create({
       data: {
@@ -266,7 +322,7 @@ router.post('/orders', async (req, res) => {
           create: items.map((item: any) => ({
             variationId: item.variationId,
             quantity: Number(item.quantity),
-            priceAtSale: Number(item.price),
+            priceAtSale: varMap.get(item.variationId)!.salePrice,
           })),
         },
       },
@@ -283,9 +339,14 @@ router.post('/orders', async (req, res) => {
     }
 
     res.status(201).json({ orderId: order.id, total: order.total, status: order.status });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Ошибка оформления заказа' });
+  } catch (err: any) {
+    console.error('ORDER_CREATE_ERROR:', err?.message || err);
+    const isInvalidRef = err?.message?.includes('foreign key') || err?.message?.includes('Unique constraint') || err?.code === 'P2003';
+    res.status(500).json({
+      error: isInvalidRef
+        ? 'Один или несколько товаров больше недоступны. Обновите корзину и попробуйте снова.'
+        : 'Ошибка оформления заказа'
+    });
   }
 });
 

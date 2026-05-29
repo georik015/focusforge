@@ -64,6 +64,7 @@ export function Orders() {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -98,6 +99,18 @@ export function Orders() {
       setSelectedOrder(prev => prev?.id === orderId ? { ...prev, status: newStatus } : prev);
     } catch { /* silent */ } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm('Отменить заказ? Это действие нельзя отменить.')) return;
+    setCancelling(true);
+    try {
+      await api.post(`/orders/${orderId}/cancel`, {});
+      await Promise.all([fetchOrders(), fetchStats()]);
+      setSelectedOrder(prev => prev?.id === orderId ? { ...prev, status: 'CANCELLED' } : prev);
+    } catch { /* silent */ } finally {
+      setCancelling(false);
     }
   };
 
@@ -330,17 +343,17 @@ export function Orders() {
               </div>
 
               {/* Status actions */}
-              <div className="shrink-0 p-5 border-t border-slate-200">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Сменить статус</p>
+              <div className="shrink-0 p-5 border-t border-slate-200 space-y-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Сменить статус</p>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(STATUS_META)
-                    .filter(([key]) => key !== selectedOrder.status)
+                    .filter(([key]) => key !== selectedOrder.status && key !== 'CANCELLED')
                     .map(([key, meta]) => {
                       const Icon = meta.icon;
                       return (
                         <button
                           key={key}
-                          disabled={updatingStatus}
+                          disabled={updatingStatus || cancelling}
                           onClick={() => handleStatusChange(selectedOrder.id, key)}
                           className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded border text-[11px] font-black transition-opacity ${meta.color} hover:opacity-75 disabled:opacity-40`}
                         >
@@ -349,6 +362,15 @@ export function Orders() {
                       );
                     })}
                 </div>
+                {selectedOrder.status !== 'CANCELLED' && selectedOrder.status !== 'DELIVERED' && (
+                  <button
+                    disabled={cancelling || updatingStatus}
+                    onClick={() => handleCancelOrder(selectedOrder.id)}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded border text-[11px] font-black transition-opacity text-red-600 bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-40"
+                  >
+                    <XCircle size={12} /> {cancelling ? 'Отмена...' : 'Отменить заказ (с откатом стока)'}
+                  </button>
+                )}
               </div>
             </motion.div>
           </>

@@ -12,6 +12,7 @@ export interface CartItem {
   price: number;
   originalPrice?: number;
   quantity: number;
+  stock?: number;
 }
 
 interface CartStore {

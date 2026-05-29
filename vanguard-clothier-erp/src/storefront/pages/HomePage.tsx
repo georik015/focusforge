@@ -10,7 +10,7 @@ interface HomePageProps {
 const HERO_SLIDES = [
   {
     title: 'Новая коллекция',
-    subtitle: 'Весна — Лето 2024',
+    subtitle: 'Весна — Лето 2026',
     description: 'Открывайте сезон с обновлённым гардеробом',
     cta: 'Смотреть коллекцию',
     badge: 'НОВИНКИ',
@@ -50,11 +50,13 @@ export default function HomePage({ onNavigate, onAddToCart }: HomePageProps) {
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
-    fetch('/api/public/products')
-      .then(r => r.json())
+    const controller = new AbortController();
+    fetch('/api/public/products', { signal: controller.signal })
+      .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setProducts(Array.isArray(data) ? data : []))
-      .catch(() => setProducts([]))
+      .catch(err => { if (err?.name !== 'AbortError') setProducts([]); })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {

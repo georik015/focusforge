@@ -26,10 +26,10 @@ export default function Footer({ onNavigate, onStaffLogin }: FooterProps) {
             Качественная одежда и аксессуары для современного городского жителя
           </p>
           <div className="flex items-center gap-3">
-            <a href="#" className="w-9 h-9 bg-gray-800 rounded-xl flex items-center justify-center hover:bg-blue-600 transition-colors">
+            <a href="https://instagram.com/vanguardclothier" target="_blank" rel="noopener noreferrer" className="w-9 h-9 bg-gray-800 rounded-xl flex items-center justify-center hover:bg-blue-600 transition-colors">
               <Instagram size={16} className="text-gray-400" />
             </a>
-            <a href="#" className="w-9 h-9 bg-gray-800 rounded-xl flex items-center justify-center hover:bg-blue-500 transition-colors">
+            <a href="https://t.me/vanguardclothier" target="_blank" rel="noopener noreferrer" className="w-9 h-9 bg-gray-800 rounded-xl flex items-center justify-center hover:bg-blue-500 transition-colors">
               <Send size={16} className="text-gray-400" />
             </a>
           </div>
@@ -111,7 +111,7 @@ export default function Footer({ onNavigate, onStaffLogin }: FooterProps) {
       <div className="border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <p className="text-xs text-gray-600">© 2024 Vanguard Clothier. Все права защищены.</p>
+            <p className="text-xs text-gray-600">© 2026 Vanguard Clothier. Все права защищены.</p>
             {onStaffLogin && (
               <button
                 onClick={onStaffLogin}

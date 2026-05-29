@@ -22,8 +22,11 @@ const PAYMENT_OPTIONS: { id: PaymentType; icon: React.ElementType; label: string
 ];
 
 export default function CheckoutPage({ onBack, onSuccess, customerToken, customerName, customerEmail, customerPhone }: CheckoutPageProps) {
-  const { items, total, clearCart } = useCartStore();
+  const { items, removeItem, clearCart } = useCartStore();
   const { city } = useCityStore();
+
+  const validItems = items.filter(i => i.variationId && i.variationId.trim().length > 0);
+  const invalidCount = items.length - validItems.length;
 
   const [delivery, setDelivery] = useState<DeliveryType>('courier');
   const [payment, setPayment] = useState<PaymentType>('CARD');
@@ -42,7 +45,7 @@ export default function CheckoutPage({ onBack, onSuccess, customerToken, custome
   const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }));
 
-  const finalTotal = total();
+  const finalTotal = validItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const deliveryCost = delivery === 'pickup' ? 0 : finalTotal >= 5000 ? 0 : 290;
   const grandTotal = finalTotal + deliveryCost;
 
@@ -53,6 +56,11 @@ export default function CheckoutPage({ onBack, onSuccess, customerToken, custome
     if (!form.name.trim()) { setError('Укажите имя'); return; }
     if (!form.phone.trim() && !form.email.trim()) { setError('Укажите телефон или email'); return; }
     if (delivery === 'courier' && !form.address.trim()) { setError('Укажите адрес доставки'); return; }
+    if (validItems.length === 0) { setError('В корзине нет действительных товаров. Пожалуйста, добавьте товары заново.'); return; }
+
+    if (invalidCount > 0) {
+      items.filter(i => !i.variationId || i.variationId.trim().length === 0).forEach(i => removeItem(i.variationId));
+    }
 
     const fullAddress = delivery === 'courier'
       ? `${form.address}${form.apartment ? `, кв. ${form.apartment}` : ''}`
@@ -67,7 +75,7 @@ export default function CheckoutPage({ onBack, onSuccess, customerToken, custome
           ...(customerToken ? { Authorization: `Bearer ${customerToken}` } : {}),
         },
         body: JSON.stringify({
-          items: items.map(i => ({ variationId: i.variationId, quantity: i.quantity, price: i.price })),
+          items: validItems.map(i => ({ variationId: i.variationId, quantity: i.quantity, price: i.price })),
           name: form.name.trim(),
           email: form.email.trim() || undefined,
           phone: form.phone.trim() || undefined,
@@ -81,6 +89,7 @@ export default function CheckoutPage({ onBack, onSuccess, customerToken, custome
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка');
 
+      if (!data.orderId) throw new Error('Заказ создан, но ID не получен');
       clearCart();
       onSuccess(data.orderId);
     } catch (err: any) {
@@ -90,12 +99,18 @@ export default function CheckoutPage({ onBack, onSuccess, customerToken, custome
     }
   };
 
-  if (items.length === 0) {
+  if (validItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
         <Package size={48} className="text-gray-300 mb-4" />
-        <p className="text-gray-600 font-medium mb-4">Корзина пуста</p>
-        <button onClick={onBack} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+        <p className="text-gray-600 font-medium mb-2">Корзина пуста</p>
+        {invalidCount > 0 && (
+          <p className="text-sm text-amber-600 mb-4">Товары в корзине устарели и были удалены.</p>
+        )}
+        <button
+          onClick={() => { if (invalidCount > 0) clearCart(); onBack(); }}
+          className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+        >
           В каталог
         </button>
       </div>
@@ -204,8 +219,14 @@ export default function CheckoutPage({ onBack, onSuccess, customerToken, custome
             <div className="bg-white rounded-2xl border border-gray-100 p-5 sticky top-36">
               <h3 className="font-bold text-gray-900 mb-4">Ваш заказ</h3>
 
+              {invalidCount > 0 && (
+                <p className="mb-3 text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-xl">
+                  {invalidCount} товар(ов) с устаревшими данными будет удалено из корзины при оформлении.
+                </p>
+              )}
+
               <div className="space-y-3 max-h-60 overflow-y-auto mb-4">
-                {items.map(item => (
+                {validItems.map(item => (
                   <div key={item.variationId} className="flex gap-3">
                     <div className="w-12 h-14 shrink-0 rounded-lg overflow-hidden bg-gray-100">
                       {item.imageUrl

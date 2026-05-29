@@ -9,22 +9,23 @@ interface HeaderProps {
   onOpenSearch: () => void;
   onOpenScanner: () => void;
   currentPage: string;
+  currentSection?: string;
   customerInfo?: { name: string } | null;
 }
 
 const MAIN_CATEGORIES = [
-  { label: 'Женское', value: 'Женское', icon: '👗' },
-  { label: 'Мужское', value: 'Мужское', icon: '👔' },
-  { label: 'Детское', value: 'Детское', icon: '🧒' },
-  { label: 'Обувь', value: 'Обувь', icon: '👟' },
-  { label: 'Аксессуары', value: 'Аксессуары', icon: '🎒' },
-  { label: 'Новинки', value: '', icon: '✨' },
-  { label: 'Акции', value: '', icon: '🏷️' },
+  { label: 'Женское', params: { gender: 'FEMALE' }, icon: '👗' },
+  { label: 'Мужское', params: { gender: 'MALE' }, icon: '👔' },
+  { label: 'Детское', params: { gender: 'KIDS' }, icon: '🧒' },
+  { label: 'Обувь', params: { category: 'Обувь' }, icon: '👟' },
+  { label: 'Аксессуары', params: { category: 'Аксессуары' }, icon: '🎒' },
+  { label: 'Новинки', params: { sort: 'newest' }, icon: '✨' },
+  { label: 'Акции', params: { sort: 'price_asc' }, icon: '🏷️' },
 ];
 
 const QUICK_LINKS = ['Кроссовки', 'Футболки', 'Толстовки', 'Брюки', 'Джинсы', 'Куртки', 'Пальто', 'Платья'];
 
-export default function Header({ onNavigate, onOpenSearch, onOpenScanner, currentPage, customerInfo }: HeaderProps) {
+export default function Header({ onNavigate, onOpenSearch, onOpenScanner, currentPage, currentSection, customerInfo }: HeaderProps) {
   const cartCount = useCartStore(s => s.count());
   const openCart = useCartStore(s => s.openCart);
   const wishlistCount = useWishlistStore(s => s.items.length);
@@ -113,11 +114,11 @@ export default function Header({ onNavigate, onOpenSearch, onOpenScanner, curren
           <div className="flex items-center gap-1 shrink-0">
             {/* Wishlist */}
             <button
-              onClick={() => onNavigate('wishlist')}
+              onClick={() => onNavigate('profile', { section: 'wishlist' })}
               className="relative p-2.5 rounded-xl hover:bg-gray-100 transition-colors group"
               title="Избранное"
             >
-              <Heart size={20} className={`transition-colors ${currentPage === 'wishlist' ? 'text-red-500 fill-red-500' : 'text-gray-600 group-hover:text-red-500'}`} />
+              <Heart size={20} className={`transition-colors ${currentPage === 'profile' && currentSection === 'wishlist' ? 'text-red-500 fill-red-500' : 'text-gray-600 group-hover:text-red-500'}`} />
               {wishlistCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                   {wishlistCount > 9 ? '9+' : wishlistCount}
@@ -169,7 +170,7 @@ export default function Header({ onNavigate, onOpenSearch, onOpenScanner, curren
             {MAIN_CATEGORIES.map(cat => (
               <button
                 key={cat.label}
-                onClick={() => onNavigate('catalog', cat.value ? { category: cat.value } : {})}
+                onClick={() => onNavigate('catalog', cat.params)}
                 className="shrink-0 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors whitespace-nowrap"
               >
                 {cat.label}
@@ -203,7 +204,7 @@ export default function Header({ onNavigate, onOpenSearch, onOpenScanner, curren
             {MAIN_CATEGORIES.map(cat => (
               <button
                 key={cat.label}
-                onClick={() => { onNavigate('catalog', cat.value ? { category: cat.value } : {}); setMobileOpen(false); }}
+                onClick={() => { onNavigate('catalog', cat.params); setMobileOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors"
               >
                 <span>{cat.icon}</span>

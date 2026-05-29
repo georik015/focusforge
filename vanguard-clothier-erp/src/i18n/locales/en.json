@@ -77,6 +77,8 @@
     "enter_drawer_balance": "Enter Total Cash in Drawer:",
     "shift_notes": "End of Shift Z-Report",
     "error_close_shift": "Failed to close shift",
+    "closing_balance": "Cash in Drawer",
+    "confirm_close": "Close Shift",
     "queued_offline": "Sale queued for sync (Offline)",
     "add_customer": "+ Customer",
     "promo_code": "Coupon",

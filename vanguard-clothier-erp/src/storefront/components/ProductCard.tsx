@@ -43,7 +43,7 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export default function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export default function ProductCard({ product, onAddToCart, onNavigate }: ProductCardProps) {
   const [imgError, setImgError] = useState(false);
   const { has, toggle } = useWishlistStore();
   const isWishlisted = has(product.id);
@@ -74,7 +74,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
   return (
     <div
-      onClick={() => onAddToCart(product)}
+      onClick={() => onNavigate?.('product', { productId: product.id })}
       className="group relative bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col"
     >
       {/* Image area */}
