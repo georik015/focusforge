@@ -83,7 +83,9 @@ router.get('/products', async (req, res) => {
       sorted = products.sort((a: P, b: P) => a.name.localeCompare(b.name, 'ru'));
     }
 
-    res.json(sorted.map((p: P, i: number) => enrichProduct(p, i)));
+    const enriched = sorted.map((p: P, i: number) => enrichProduct(p, i));
+    const result = req.query.discount === 'true' ? enriched.filter((p: any) => p.discount > 0) : enriched;
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch products' });

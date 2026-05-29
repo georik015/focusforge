@@ -228,6 +228,9 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
     const result = await prisma.$transaction(async (tx) => {
       const totalRefund = items.reduce((sum, i) => sum + i.quantity * i.refundPrice, 0);
 
+      // Load sale to get customerId for loyalty adjustment
+      const sale = await tx.sale.findUnique({ where: { id: saleId }, select: { customerId: true, totalAmount: true } });
+
       const ret = await tx.return.create({
         data: {
           saleId,
@@ -275,6 +278,22 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
             reason: `Возврат по чеку #${saleId.slice(-6).toUpperCase()}`,
           },
         });
+      }
+
+      // Deduct loyalty points proportionally if sale had a customer
+      if (sale?.customerId) {
+        const pointsToDeduct = Math.floor(totalRefund);
+        if (pointsToDeduct > 0) {
+          const customer = await tx.customer.findUnique({ where: { id: sale.customerId }, select: { loyaltyPoints: true } });
+          const safeDeduct = Math.min(pointsToDeduct, customer?.loyaltyPoints ?? 0);
+          await tx.customer.update({
+            where: { id: sale.customerId },
+            data: {
+              loyaltyPoints: { decrement: safeDeduct },
+              totalSpent: { decrement: totalRefund },
+            },
+          });
+        }
       }
 
       await tx.activityLog.create({
