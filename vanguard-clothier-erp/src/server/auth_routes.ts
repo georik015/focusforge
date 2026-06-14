@@ -2,12 +2,25 @@
 import { prisma } from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { authenticate, authorize } from './auth';
 import { z } from 'zod';
 import crypto from 'crypto';
 
 const router = Router();
-const getSecret = () => process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
+const getSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET environment variable is not set.');
+  return secret;
+};
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -15,7 +28,7 @@ const loginSchema = z.object({
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 

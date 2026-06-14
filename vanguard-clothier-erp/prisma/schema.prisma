@@ -183,6 +183,7 @@ model Sale {
   @@index([sellerId])
   @@index([customerId])
   @@index([shiftId])
+  @@index([createdAt])
 }
 
 model SaleItem {
@@ -256,6 +257,7 @@ model ActivityLog {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([createdAt])
 }
 
 model Attendance {
@@ -268,6 +270,7 @@ model Attendance {
   notes       String?
 
   @@index([userId])
+  @@index([checkIn])
 }
 
 model Expense {

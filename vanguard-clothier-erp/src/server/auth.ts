@@ -2,11 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Role } from '../types';
 
-// Read at call time so dotenv has a chance to populate process.env
-const getSecret = () => process.env.JWT_SECRET || (() => {
-  console.warn('⚠️  JWT_SECRET not set — using insecure fallback. Set JWT_SECRET in .env!');
-  return 'vanguard-dev-secret-2026';
-})();
+// JWT_SECRET must be set in .env — server refuses to start without it (see server.ts startup check)
+const getSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET environment variable is not set. Add it to your .env file.');
+  return secret;
+};
 
 export interface AuthRequest extends Request {
   user?: {

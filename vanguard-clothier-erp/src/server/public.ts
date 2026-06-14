@@ -1,21 +1,36 @@
 import { Router, Request } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '../lib/prisma';
 import { sendOrderConfirmation } from './email';
+import { calcRating, calcLoyaltyPoints } from '../lib/business-logic.js';
+
+const orderLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Слишком много заказов. Подождите минуту.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const router = Router();
-const getSecret = () => process.env.JWT_SECRET || 'vanguard-dev-secret-2026';
+const getSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is not set');
+  return secret;
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function enrichProduct(p: any, i: number) {
-  return {
-    ...p,
-    discount: [0, 0, 15, 20, 0, 25, 0, 30, 0, 0, 20, 0, 15, 0, 40, 0, 25, 0, 35, 0, 10, 0, 0, 20, 0, 15, 30, 0, 25, 0][i % 30],
-    rating: parseFloat((3.8 + Math.round((Math.sin(i * 7.3) + 1) * 6) / 10).toFixed(1)),
-    reviewCount: 12 + Math.floor(Math.abs(Math.sin(i * 3.7)) * 340),
-  };
+function enrichProduct(p: any, _i: number) {
+  const totalStock = p.variations?.reduce((s: number, v: any) => s + (v.stock ?? 0), 0) ?? 0;
+  const varCount   = p.variations?.length ?? 1;
+  const rating     = calcRating(p.id ?? '');
+  const idHash     = p.id ? p.id.split('').reduce((h: number, c: string) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) : 0;
+  const reviewCount = 8 + (idHash % 120) + Math.min(totalStock, 80);
+  const discount = p.discount ?? (varCount >= 5 || (totalStock > 0 && totalStock < 20) ? (10 + (idHash % 4) * 5) : 0);
+  return { ...p, discount, rating, reviewCount };
 }
 
 function authenticateCustomer(req: Request): string | null {
@@ -269,7 +284,7 @@ router.get('/my-orders', async (req, res) => {
 
 // ── Checkout / Orders ─────────────────────────────────────────────────────────
 
-router.post('/orders', async (req, res) => {
+router.post('/orders', orderLimiter, async (req, res) => {
   const {
     items, // [{variationId, quantity, price}]
     name, email, phone, address, city,
@@ -349,7 +364,7 @@ router.post('/orders', async (req, res) => {
 
       // Update loyalty points if registered customer
       if (customerId) {
-        const points = Math.floor(total / 10);
+        const points = calcLoyaltyPoints(total);
         await tx.customer.update({
           where: { id: customerId },
           data: { loyaltyPoints: { increment: points }, totalSpent: { increment: total } },

@@ -1,6 +1,7 @@
 ﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from './auth';
+import { calcTotal, calcLoyaltyPoints, checkStock } from '../lib/business-logic.js';
 
 const router = Router();
 
@@ -32,7 +33,6 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      let totalAmount = 0;
       const verifiedPrices = new Map<string, number>();
       const user = await tx.user.findUnique({ where: { id: sellerId } });
       const warehouseId = user?.warehouseId;
@@ -41,21 +41,21 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         throw new Error('Seller must be assigned to a warehouse to process sales');
       }
 
-      // 1. Calculate total and check stock
+      // 1. Verify stock and collect prices from DB (client prices are ignored)
       for (const item of items) {
         const variation = await tx.productVariation.findUnique({
           where: { id: item.variationId },
           include: { warehouseStock: { where: { warehouseId } } }
         });
 
-        const currentStock = variation?.warehouseStock[0]?.quantity || 0;
-
-        if (!variation || currentStock < item.quantity) {
-          throw new Error(`Insufficient stock in current warehouse for SKU: ${variation?.sku || 'unknown'}`);
+        if (!variation) {
+          throw new Error(`SKU not found: ${item.variationId}`);
         }
 
+        const currentStock = variation.warehouseStock[0]?.quantity ?? 0;
+        checkStock(currentStock, item.quantity); // throws if insufficient
+
         verifiedPrices.set(item.variationId, variation.salePrice);
-        totalAmount += variation.salePrice * item.quantity;
 
         // 2. Decrement Local Warehouse Stock
         await tx.warehouseStock.update({
@@ -81,13 +81,19 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         });
       }
 
-      const finalAmount = Math.max(0, totalAmount - (discount || 0));
+      // 2. Calculate total from verified DB prices (not client-submitted prices)
+      const totalAmount = calcTotal(items, verifiedPrices);
+      const discountAmount = discount || 0; // absolute ₽ amount, not percent
+      if (discountAmount > totalAmount) {
+        throw new Error(`Скидка (${discountAmount}₽) превышает сумму чека (${totalAmount}₽)`);
+      }
+      const finalAmount = totalAmount - discountAmount;
 
       // 5. Create Sale Record
       const sale = await tx.sale.create({
         data: {
           totalAmount: finalAmount,
-          discount: discount || 0,
+          discount: discountAmount,
           paymentType,
           sellerId,
           customerId,
@@ -119,8 +125,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
           },
         });
       } else if (customerId) {
-        // Regular payment — earn points proportionally
-        const pointsEarned = Math.floor(finalAmount);
+        // Regular payment — earn 1 point per 10₽ (consistent with online storefront)
+        const pointsEarned = calcLoyaltyPoints(finalAmount);
         await tx.customer.update({
           where: { id: customerId },
           data: {
@@ -173,35 +179,12 @@ router.get('/history', authenticate, async (req, res) => {
   }
 });
 
-// GET single sale (for return lookup)
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const sale = await prisma.sale.findUnique({
-      where: { id: req.params.id },
-      include: {
-        seller: { select: { name: true } },
-        customer: { select: { name: true, phone: true } },
-        items: {
-          include: {
-            variation: { include: { product: true } }
-          }
-        },
-        returns: { include: { items: true } }
-      }
-    });
-    if (!sale) return res.status(404).json({ error: 'Sale not found' });
-    res.json(sale);
-  } catch {
-    res.status(500).json({ error: 'Failed to fetch sale' });
-  }
-});
-
-// POST return
+// POST return — declared BEFORE /:id to avoid route conflict
 router.post('/returns', authenticate, async (req: AuthRequest, res) => {
   const { saleId, reason, items } = req.body as {
     saleId: string;
     reason?: string;
-    items: { variationId: string; quantity: number; refundPrice: number }[];
+    items: { variationId: string; quantity: number }[];
   };
 
   if (!saleId || !items?.length) {
@@ -244,7 +227,11 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const totalRefund = items.reduce((sum, i) => sum + i.quantity * i.refundPrice, 0);
+      // Цена берётся из оригинальной продажи (не от клиента) — защита от подмены цены
+      const totalRefund = items.reduce((sum, i) => {
+        const saleItem = existingSale.items.find(si => si.variationId === i.variationId)!;
+        return sum + i.quantity * saleItem.priceAtSale;
+      }, 0);
 
       // Load sale to get customerId for loyalty adjustment
       const sale = await tx.sale.findUnique({ where: { id: saleId }, select: { customerId: true, totalAmount: true } });
@@ -255,11 +242,14 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
           reason,
           totalRefund,
           items: {
-            create: items.map((i) => ({
-              variationId: i.variationId,
-              quantity: i.quantity,
-              refundPrice: i.refundPrice,
-            })),
+            create: items.map((i) => {
+              const saleItem = existingSale.items.find(si => si.variationId === i.variationId)!;
+              return {
+                variationId: i.variationId,
+                quantity: i.quantity,
+                refundPrice: saleItem.priceAtSale, // цена из оригинальной продажи
+              };
+            }),
           },
         },
         include: { items: true }
@@ -298,9 +288,9 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
         });
       }
 
-      // Deduct loyalty points proportionally if sale had a customer
+      // Deduct loyalty points proportionally if sale had a customer (1 point per 10₽)
       if (sale?.customerId) {
-        const pointsToDeduct = Math.floor(totalRefund);
+        const pointsToDeduct = Math.floor(totalRefund / 10);
         if (pointsToDeduct > 0) {
           const customer = await tx.customer.findUnique({ where: { id: sale.customerId }, select: { loyaltyPoints: true } });
           const safeDeduct = Math.min(pointsToDeduct, customer?.loyaltyPoints ?? 0);
@@ -329,6 +319,29 @@ router.post('/returns', authenticate, async (req: AuthRequest, res) => {
   } catch (err: any) {
     console.error('Return error:', err);
     res.status(500).json({ error: 'Failed to process return' });
+  }
+});
+
+// GET single sale — declared AFTER /returns and /history to avoid route conflicts
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const sale = await prisma.sale.findUnique({
+      where: { id: req.params.id },
+      include: {
+        seller: { select: { name: true } },
+        customer: { select: { name: true, phone: true } },
+        items: {
+          include: {
+            variation: { include: { product: true } }
+          }
+        },
+        returns: { include: { items: true } }
+      }
+    });
+    if (!sale) return res.status(404).json({ error: 'Sale not found' });
+    res.json(sale);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch sale' });
   }
 });
 
